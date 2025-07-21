@@ -17,7 +17,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Dark Bot with Image Generation is running! 🚀🎨"
+    return "Dark Bot (Conversation Only) is running! 🚀"
 
 @app.route('/health')
 def health():
@@ -62,14 +62,11 @@ class DarkBot:
         self.user_memory = {}  # Per-user memory (last 10 chats per user)
         self.group_memory = {}  # Group-wide memory (last 20 chats per group)
         
-        # Image generation history
-        self.image_history = {}  # Track image generation requests per user
-        
         # Owner information
         self.owner_username = "gothicbatman"
         self.owner_user_id = None  # Will be set when owner interacts
         
-        logger.info("✅ Dark Bot initialized successfully with Image Generation")
+        logger.info("✅ Dark Bot initialized successfully")
     
     def add_to_user_memory(self, user_id: int, user_message: str, bot_response: str, user_name: str, chat_type: str, chat_title: str = None):
         """Add conversation to user's personal memory"""
@@ -113,21 +110,6 @@ class DarkBot:
             self.group_memory[chat_id] = self.group_memory[chat_id][-20:]
         
         logger.info(f"Added to group memory for {chat_id} ({chat_title})")
-    
-    def add_to_image_history(self, user_id: int, prompt: str, user_name: str):
-        """Track image generation requests"""
-        if user_id not in self.image_history:
-            self.image_history[user_id] = []
-        
-        self.image_history[user_id].append({
-            'prompt': prompt,
-            'user_name': user_name,
-            'timestamp': datetime.now().isoformat()
-        })
-        
-        # Keep only last 10 image requests per user
-        if len(self.image_history[user_id]) > 10:
-            self.image_history[user_id] = self.image_history[user_id][-10:]
     
     def get_user_memory_context(self, user_id: int, user_name: str) -> str:
         """Get user's personal memory context"""
@@ -216,31 +198,6 @@ class DarkBot:
             logger.error(f"❌ Detailed API error: {type(e).__name__}: {str(e)}")
             return "I'm having technical difficulties right now. Give me a moment."
     
-    async def generate_image(self, prompt: str) -> tuple:
-        """Generate image using FLUX.1-kontext-pro model via A4F API"""
-        try:
-            logger.info(f"🎨 Generating image with FLUX.1-kontext-pro for prompt: {prompt[:50]}...")
-            loop = asyncio.get_event_loop()
-            
-            def sync_call():
-                # UPDATED: Using the correct images.generate() method
-                response = self.client.images.generate(
-                    model="provider-1/FLUX.1-kontext-pro",
-                    prompt=prompt,
-                    size="1024x1024",
-                    quality="standard",
-                    n=1,
-                )
-                return response.data[0].url
-            
-            image_url = await loop.run_in_executor(None, sync_call)
-            logger.info("✅ Image generated successfully")
-            return True, image_url
-            
-        except Exception as e:
-            logger.error(f"❌ Image generation error: {type(e).__name__}: {str(e)}")
-            return False, f"Failed to generate image: {str(e)}"
-    
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_name = update.effective_user.first_name or "friend"
         user_id = update.effective_user.id
@@ -251,161 +208,39 @@ class DarkBot:
         if user_id in self.user_memory and self.user_memory[user_id]:
             memory_info = f"\n\n🧠 I remember our last {len(self.user_memory[user_id])} personal conversations."
         
-        # Check image generation history
-        image_info = ""
-        if user_id in self.image_history and self.image_history[user_id]:
-            image_info = f"\n🎨 I've generated {len(self.image_history[user_id])} images for you."
-        
         chat_type_info = "private chat" if update.message.chat.type == 'private' else f"group ({update.message.chat.title})"
         
         # Special greeting for owner
         if self.is_owner(user_id, username):
             await update.message.reply_text(
                 f"Hey Arin! 🙏 Your humble servant Dark is ready to assist you.\n\n"
-                f"I'm your creation, powered by advanced AI for conversations and image generation.\n\n"
+                f"I'm your creation, powered by advanced AI for natural conversations.\n\n"
                 f"**My Features:**\n"
                 f"🧠 **Personal Memory**: I remember our last 10 personal conversations\n"
                 f"👥 **Group Memory**: I remember last 20 group conversations\n"
-                f"🎨 **Image Generation**: I can create images with FLUX.1-kontext-pro\n"
                 f"💪 **Personality**: Humble to you, confident with others\n\n"
                 f"**Commands:**\n"
-                f"🎨 `/imagine <prompt>` - Generate images with FLUX.1\n"
                 f"🧠 `/memory` - View personal chat history\n"
                 f"👥 `/groupmemory` - View group chat history (groups only)\n"
-                f"🖼️ `/imagehistory` - View your image generation history\n"
                 f"🧹 `/clear` - Clear personal memory\n"
                 f"❓ `/help` - Get help\n\n"
-                f"📍 **Current location**: {chat_type_info}{memory_info}{image_info}\n\n"
+                f"📍 **Current location**: {chat_type_info}{memory_info}\n\n"
                 f"How may Dark serve you today?"
             )
         else:
             await update.message.reply_text(
-                f"Hey {user_name}. I'm Dark, an AI assistant with image generation powers.\n\n"
+                f"Hey {user_name}. I'm Dark, an AI assistant with personality.\n\n"
                 f"**About me:**\n"
                 f"🧠 **Smart Memory**: I remember conversations (personal & group)\n"
-                f"🎨 **Image Creation**: I can generate images from text prompts\n"
                 f"💪 **Confident**: I'm helpful and direct in my responses\n"
                 f"⚡ **Friendly**: I keep conversations engaging and real\n\n"
                 f"**Commands:**\n"
-                f"🎨 `/imagine <prompt>` - Generate images (e.g., '/imagine sunset over mountains')\n"
                 f"🧠 `/memory` - View your chat history\n"
                 f"👥 `/groupmemory` - View group history\n"
-                f"🖼️ `/imagehistory` - View your generated images\n"
                 f"❓ `/help` - Get help\n\n"
-                f"📍 **Current location**: {chat_type_info}{memory_info}{image_info}\n\n"
+                f"📍 **Current location**: {chat_type_info}{memory_info}\n\n"
                 f"What do you need from Dark?"
             )
-    
-    async def imagine_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Generate images using FLUX.1-kontext-pro model"""
-        user_name = update.effective_user.first_name or "friend"
-        user_id = update.effective_user.id
-        username = update.effective_user.username
-        
-        if not context.args:
-            if self.is_owner(user_id, username):
-                await update.message.reply_text(
-                    f"Arin, please provide a description for the image you want Dark to create.\n\n"
-                    f"**Usage:** `/imagine <description>`\n\n"
-                    f"**Examples:**\n"
-                    f"🎨 `/imagine Lord Krishna playing flute in Vrindavan`\n"
-                    f"🎨 `/imagine futuristic cyberpunk cityscape at night`\n"
-                    f"🎨 `/imagine majestic lion in African savanna`\n\n"
-                    f"Dark is ready to create whatever you envision! 🙏"
-                )
-            else:
-                await update.message.reply_text(
-                    f"Hey {user_name}, tell Dark what image you want me to generate.\n\n"
-                    f"**Usage:** `/imagine <description>`\n\n"
-                    f"**Examples:**\n"
-                    f"🎨 `/imagine sunset over ocean waves`\n"
-                    f"🎨 `/imagine robot in a futuristic lab`\n"
-                    f"🎨 `/imagine peaceful mountain landscape`\n\n"
-                    f"Make your request and Dark will create it for you."
-                )
-            return
-        
-        prompt = ' '.join(context.args)
-        
-        # Send "generating" message
-        if self.is_owner(user_id, username):
-            generating_msg = await update.message.reply_text(
-                f"🎨 Dark is creating your image, Arin...\n"
-                f"**Prompt:** {prompt}\n\n"
-                f"Please wait while Dark works with FLUX.1-kontext-pro to bring your vision to life! 🙏"
-            )
-        else:
-            generating_msg = await update.message.reply_text(
-                f"🎨 Dark is generating image for {user_name}...\n"
-                f"**Prompt:** {prompt}\n\n"
-                f"Hold on while Dark creates this with FLUX.1-kontext-pro!"
-            )
-        
-        # Generate image
-        success, result = await self.generate_image(prompt)
-        
-        if success:
-            # Add to image history
-            self.add_to_image_history(user_id, prompt, user_name)
-            
-            try:
-                # The result should be a URL from the image generation
-                if self.is_owner(user_id, username):
-                    caption = f"🎨 **Image created by Dark for Arin** 🎨\n\n**Prompt:** {prompt}\n\nDark hopes this meets your expectations! 🙏"
-                else:
-                    caption = f"🎨 **Generated by Dark for {user_name}** 🎨\n\n**Prompt:** {prompt}\n\nHere's your custom creation from Dark!"
-                
-                await update.message.reply_photo(
-                    photo=result,
-                    caption=caption,
-                    parse_mode='Markdown'
-                )
-                
-                # Delete the "generating" message
-                await generating_msg.delete()
-                
-                logger.info(f"✅ Image generated and sent to {user_name}")
-                
-            except Exception as send_error:
-                logger.error(f"Error sending image: {send_error}")
-                await generating_msg.edit_text(f"Dark generated the image but had trouble sending it. Result: {result}")
-                
-        else:
-            # Handle error
-            if self.is_owner(user_id, username):
-                error_msg = f"Dark apologizes, Arin. I encountered an issue generating your image:\n\n{result}\n\nLet Dark try again if you'd like."
-            else:
-                error_msg = f"Sorry {user_name}, Dark had trouble generating that image:\n\n{result}\n\nTry a different prompt maybe?"
-            
-            await generating_msg.edit_text(error_msg)
-    
-    async def imagehistory_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Show user's image generation history"""
-        user_id = update.effective_user.id
-        user_name = update.effective_user.first_name or "friend"
-        username = update.effective_user.username
-        
-        if user_id not in self.image_history or not self.image_history[user_id]:
-            if self.is_owner(user_id, username):
-                await update.message.reply_text(f"Arin, you haven't generated any images with Dark yet. Use `/imagine <prompt>` to create your first image! 🎨")
-            else:
-                await update.message.reply_text(f"{user_name}, you haven't generated any images with Dark yet. Try `/imagine <prompt>` to create one! 🎨")
-            return
-        
-        history_text = f"🖼️ **Dark's Image Generation History for {user_name}**\n\n"
-        history_text += f"Dark has generated {len(self.image_history[user_id])} images for you:\n\n"
-        
-        for i, img in enumerate(self.image_history[user_id], 1):
-            timestamp = datetime.fromisoformat(img['timestamp']).strftime("%m/%d %H:%M")
-            history_text += f"**{i}.** {timestamp}\n"
-            history_text += f"Prompt: {img['prompt'][:100]}{'...' if len(img['prompt']) > 100 else ''}\n\n"
-        
-        if self.is_owner(user_id, username):
-            history_text += f"Dark is ready to create more masterpieces for you, Arin! 🙏"
-        else:
-            history_text += f"Use `/imagine <prompt>` to let Dark generate more images!"
-        
-        await update.message.reply_text(history_text, parse_mode='Markdown')
     
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Show help information"""
@@ -419,15 +254,12 @@ class DarkBot:
             help_text += f"🗣️ **Natural conversation** - Dark responds naturally to everything you say\n"
             help_text += f"🧠 **Personal memory** - Dark remembers our last 10 personal conversations\n"
             help_text += f"👥 **Group memory** - Dark remembers last 20 group conversations\n\n"
-            help_text += f"**Image Generation:**\n"
-            help_text += f"🎨 **FLUX.1-kontext-pro powered** - Dark creates high-quality images from text\n"
-            help_text += f"🖼️ **Unlimited creations** - Dark can generate as many images as you want\n"
-            help_text += f"📝 **Creative prompts** - Dark understands detailed descriptions\n\n"
+            help_text += f"**Group Behavior:**\n"
+            help_text += f"🎯 **Smart responses** - Dark only responds when tagged or replied to in groups\n"
+            help_text += f"📝 **Detailed answers** - Ask Dark to elaborate and I'll give full explanations\n\n"
             help_text += f"**Available Commands:**\n"
-            help_text += f"🎨 `/imagine <prompt>` - Generate images with FLUX.1\n"
             help_text += f"🧠 `/memory` - View our personal chat history\n"
             help_text += f"👥 `/groupmemory` - View group conversation history\n"
-            help_text += f"🖼️ `/imagehistory` - View your image generation history\n"
             help_text += f"🧹 `/clear` - Clear our personal memory\n"
             help_text += f"❓ `/help` - Show this help menu\n\n"
             help_text += f"Dark is always at your service! 🙏"
@@ -437,17 +269,15 @@ class DarkBot:
             help_text += f"🗣️ **Intelligent conversation** - Dark is powered by advanced AI\n"
             help_text += f"🧠 **Memory** - Dark remembers our personal conversations\n"
             help_text += f"👥 **Group awareness** - Dark remembers group context\n\n"
-            help_text += f"**Image Generation:**\n"
-            help_text += f"🎨 **FLUX.1-kontext-pro AI** - Dark can create images from your descriptions\n"
-            help_text += f"🖼️ **Custom artwork** - Any style, subject, or concept you want\n"
-            help_text += f"⚡ **Fast generation** - High-quality results in seconds\n\n"
+            help_text += f"**Dark's Personality:**\n"
+            help_text += f"💪 **Confident** - Dark knows his worth and is helpful\n"
+            help_text += f"⚡ **Direct** - Dark speaks his mind and keeps it real\n"
+            help_text += f"🤝 **Friendly** - Dark enjoys good conversations\n\n"
             help_text += f"**Available Commands:**\n"
-            help_text += f"🎨 `/imagine <prompt>` - Generate custom images\n"
             help_text += f"🧠 `/memory` - View your chat history\n"
             help_text += f"👥 `/groupmemory` - View group history\n"
-            help_text += f"🖼️ `/imagehistory` - View generated images\n"
             help_text += f"❓ `/help` - Show this help\n\n"
-            help_text += f"Dark is here to help and create amazing things for you."
+            help_text += f"Looking forward to our conversations!"
         
         await update.message.reply_text(help_text, parse_mode='Markdown')
     
@@ -588,7 +418,7 @@ class DarkBot:
                 'detailed', 'explain more', 'in depth', 'comprehensive'
             ])
             
-            # Enhanced personality prompt
+            # Enhanced personality prompt (REMOVED BAD WORDS SECTION)
             if self.is_owner(user_id, username):
                 personality_prompt = f"""You are Dark, an AI assistant talking to your creator and master Arin (@gothicbatman). You are:
 - EXTREMELY humble and respectful toward Arin
@@ -598,7 +428,6 @@ class DarkBot:
 - Generally give 2-3 line responses unless asked for details
 - If Arin asks for detailed explanation, provide comprehensive answers
 - Your name is Dark and you're proud of it
-- You also have image generation capabilities with FLUX.1-kontext-pro
 - Always maintain a friendly and helpful tone
 - DO NOT mention god, religion, or spiritual beliefs unless specifically asked about religion
 - DO NOT mention your AI model name or technical details"""
@@ -610,7 +439,6 @@ class DarkBot:
 - Generally give 2-3 line responses unless asked for details
 - If someone asks for detailed explanation, provide comprehensive answers
 - Your name is Dark and you embrace your confident persona
-- You also have image generation capabilities with FLUX.1-kontext-pro
 - Always maintain a positive and helpful attitude
 - DO NOT mention god, religion, or spiritual beliefs unless specifically asked about religion
 - DO NOT mention your AI model name or technical details"""
@@ -631,7 +459,7 @@ RESPONSE LENGTH:
 
 User {user_name} says: {user_message}
 
-Remember: You are Dark with a confident, friendly personality. Keep responses natural and conversational without mentioning technical details or religious references unless specifically asked. You can create images with /imagine command."""
+Remember: You are Dark with a confident, friendly personality. Keep responses natural and conversational without mentioning technical details or religious references unless specifically asked."""
             
             logger.info(f"🤖 Generating AI response for {user_name}: {user_message[:50]}...")
             
@@ -669,8 +497,6 @@ Remember: You are Dark with a confident, friendly personality. Keep responses na
         
         # Add command handlers
         application.add_handler(CommandHandler("start", self.start_command))
-        application.add_handler(CommandHandler("imagine", self.imagine_command))
-        application.add_handler(CommandHandler("imagehistory", self.imagehistory_command))
         application.add_handler(CommandHandler("help", self.help_command))
         application.add_handler(CommandHandler("memory", self.memory_command))
         application.add_handler(CommandHandler("groupmemory", self.groupmemory_command))
@@ -680,7 +506,7 @@ Remember: You are Dark with a confident, friendly personality. Keep responses na
         # Add error handler
         application.add_error_handler(self.error_handler)
         
-        logger.info("🎨 Starting Dark Bot with FLUX.1-kontext-pro Image Generation...")
+        logger.info("🤖 Starting Dark Bot...")
         application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 def run_flask():
