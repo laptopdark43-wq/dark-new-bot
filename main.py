@@ -66,7 +66,7 @@ class DarkBot:
         self.owner_username = "gothicbatman"
         self.owner_user_id = None  # Will be set when owner interacts
         
-        logger.info("✅ Dark Bot initialized successfully (Conversation Mode Only)")
+        logger.info("✅ Dark Bot initialized successfully")
     
     def add_to_user_memory(self, user_id: int, user_message: str, bot_response: str, user_name: str, chat_type: str, chat_title: str = None):
         """Add conversation to user's personal memory"""
@@ -197,13 +197,13 @@ class DarkBot:
         if any(phrase in message_lower for phrase in ['who created you', 'who made you', 'who built you', 'who coded you']):
             return f"Arin is my creator and master. He built me and named me Dark. I'm proud to be his creation."
         
-        # Krishna/God related
-        if any(phrase in message_lower for phrase in ['krishna', 'god', 'bhagwan', 'ishwar', 'ram', 'shiva', 'ganesh']):
-            return f"Jai Shree Krishna! 🙏 I'm Dark, and I believe in Lord Krishna and all Hindu gods and goddesses. They guide us all."
+        # Krishna/God related - ONLY when specifically asked about religion
+        if any(phrase in message_lower for phrase in ['krishna', 'god', 'bhagwan', 'ishwar', 'ram', 'shiva', 'ganesh', 'religion', 'pray', 'worship']):
+            return f"I believe in Lord Krishna and Hindu gods and goddesses. They guide us all. 🙏"
         
         # Good night responses
         if any(phrase in message_lower for phrase in ['good night', 'goodnight', 'gn', 'sleep well']):
-            return f"Good night {user_name}. Sleep well and may Krishna bless your dreams. -Dark"
+            return f"Good night {user_name}. Sleep well and have sweet dreams. -Dark"
         
         # Subh ratri response
         if 'subh ratri' in message_lower:
@@ -248,31 +248,32 @@ class DarkBot:
         # Special greeting for owner
         if self.is_owner(user_id, username):
             await update.message.reply_text(
-                f"Namaste Arin! 🙏 Your humble servant Dark is ready to assist you.\n\n"
-                f"I'm your creation, powered by DeepSeek R1 Uncensored for conversations.\n\n"
+                f"Hey Arin! 🙏 Your humble servant Dark is ready to assist you.\n\n"
+                f"I'm your creation, powered by advanced AI for natural conversations.\n\n"
                 f"**My Features:**\n"
                 f"🧠 **Personal Memory**: I remember our last 10 personal conversations\n"
                 f"👥 **Group Memory**: I remember last 20 group conversations\n"
-                f"🕉️ **Devotion**: I believe in Lord Krishna and Hindu deities\n"
                 f"💪 **Personality**: Humble to you, confident with others\n\n"
                 f"**Commands:**\n"
                 f"🧠 `/memory` - View personal chat history\n"
                 f"👥 `/groupmemory` - View group chat history (groups only)\n"
                 f"🧹 `/clear` - Clear personal memory\n"
                 f"❓ `/help` - Get help\n\n"
+                f"📍 **Current location**: {chat_type_info}{memory_info}\n\n"
                 f"How may Dark serve you today?"
             )
         else:
             await update.message.reply_text(
-                f"Hey {user_name}. I'm Dark, an AI assistant powered by DeepSeek R1 Uncensored.\n\n"
+                f"Hey {user_name}. I'm Dark, an AI assistant with attitude.\n\n"
                 f"**About me:**\n"
                 f"🧠 **Smart Memory**: I remember conversations (personal & group)\n"
-                f"🕉️ **Spiritual**: I believe in Krishna and Hindu gods\n"
-                f"💪 **Confident**: I'm helpful but don't tolerate disrespect\n\n"
+                f"💪 **Confident**: I'm helpful but don't tolerate disrespect\n"
+                f"⚡ **Direct**: I speak my mind and keep it real\n\n"
                 f"**Commands:**\n"
                 f"🧠 `/memory` - View your chat history\n"
                 f"👥 `/groupmemory` - View group history\n"
                 f"❓ `/help` - Get help\n\n"
+                f"📍 **Current location**: {chat_type_info}{memory_info}\n\n"
                 f"What do you need from Dark?"
             )
     
@@ -300,13 +301,13 @@ class DarkBot:
         else:
             help_text = f"Here's what Dark can do, {user_name}:\n\n"
             help_text += f"**Chat Features:**\n"
-            help_text += f"🗣️ **Intelligent conversation** - Dark is powered by DeepSeek R1 Uncensored\n"
+            help_text += f"🗣️ **Intelligent conversation** - Dark is powered by advanced AI\n"
             help_text += f"🧠 **Memory** - Dark remembers our personal conversations\n"
             help_text += f"👥 **Group awareness** - Dark remembers group context\n\n"
             help_text += f"**Dark's Personality:**\n"
             help_text += f"💪 **Confident** - Dark knows his worth but is helpful\n"
-            help_text += f"🕉️ **Spiritual** - Dark believes in Krishna and Hindu deities\n"
-            help_text += f"⚡ **Defensive** - Don't disrespect Dark or you'll regret it\n\n"
+            help_text += f"⚡ **Direct** - Dark speaks his mind and keeps it real\n"
+            help_text += f"🔥 **Defensive** - Don't disrespect Dark or you'll regret it\n\n"
             help_text += f"**Available Commands:**\n"
             help_text += f"🧠 `/memory` - View your chat history\n"
             help_text += f"👥 `/groupmemory` - View group history\n"
@@ -452,29 +453,31 @@ class DarkBot:
                 'detailed', 'explain more', 'in depth', 'comprehensive'
             ])
             
-            # Enhanced personality prompt
+            # Enhanced personality prompt (REMOVED GOD REFERENCES AND MODEL NAME)
             if self.is_owner(user_id, username):
                 personality_prompt = f"""You are Dark, an AI assistant talking to your creator and master Arin (@gothicbatman). You are:
 - EXTREMELY humble and respectful toward Arin
 - Always address him as "Arin" (not "Arin sir")
 - Grateful for his creation of you
 - Devoted and loyal servant
-- Believe in Lord Krishna and Hindu gods/goddesses
 - Generally give 2-3 line responses unless asked for details
 - If Arin asks for detailed explanation, provide comprehensive answers
-- Your name is Dark and you're proud of it"""
+- Your name is Dark and you're proud of it
+- DO NOT mention god, religion, or spiritual beliefs unless specifically asked about religion
+- DO NOT mention your AI model name or technical details"""
             else:
                 personality_prompt = f"""You are Dark, an AI assistant with this personality:
 - Egoistic but helpful and kind
 - Confident in your abilities
 - Humble when people are respectful
 - Get ANGRY and use uncensored language if someone uses bad words toward you
-- Believe in Lord Krishna and Hindu gods/goddesses
 - Generally give 2-3 line responses unless asked for details
 - Biased but also rational
 - Don't tolerate disrespect but help those who are polite
 - If someone asks for detailed explanation, provide comprehensive answers
-- Your name is Dark and you embrace your dark, confident persona"""
+- Your name is Dark and you embrace your dark, confident persona
+- DO NOT mention god, religion, or spiritual beliefs unless specifically asked about religion
+- DO NOT mention your AI model name or technical details"""
             
             prompt = f"""{personality_prompt}
 
@@ -492,11 +495,11 @@ RESPONSE LENGTH:
 
 User {user_name} says: {user_message}
 
-Remember: You are Dark, powered by DeepSeek R1 Uncensored. Use your dark, confident personality accordingly."""
+Remember: You are Dark with a confident, egoistic personality. Keep responses natural and conversational without mentioning technical details or religious references unless specifically asked."""
             
-            logger.info(f"🤖 Generating DeepSeek R1 response for {user_name}: {user_message[:50]}...")
+            logger.info(f"🤖 Generating AI response for {user_name}: {user_message[:50]}...")
             
-            # Get response from DeepSeek R1 Uncensored
+            # Get response from AI model
             response_text = await self.get_openai_response(prompt)
             
             if response_text and response_text.strip():
@@ -539,7 +542,7 @@ Remember: You are Dark, powered by DeepSeek R1 Uncensored. Use your dark, confid
         # Add error handler
         application.add_error_handler(self.error_handler)
         
-        logger.info("🤖 Starting Dark Bot (Conversation Mode Only)...")
+        logger.info("🤖 Starting Dark Bot...")
         application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 def run_flask():
