@@ -23,53 +23,73 @@ def home():
 def health():
     return "OK"
 
-class DarkBot:
-    def __init__(self):
-        logger.info("=== Dark Bot Initialization Starting ===")
+def __init__(self):
+    # === ENVIRONMENT DEBUGGING SECTION ===
+    logger.info("=== Dark Bot Environment Check ===")
+    
+    # Get environment variables
+    telegram_token = os.getenv('TELEGRAM_BOT_TOKEN')
+    a4f_key = os.getenv('A4F_API_KEY')
+    
+    # Debug environment variable existence
+    logger.info(f"Telegram token exists: {telegram_token is not None}")
+    logger.info(f"A4F key exists: {a4f_key is not None}")
+    
+    # Debug environment variable lengths
+    if telegram_token:
+        logger.info(f"Telegram token length: {len(telegram_token)}")
+    else:
+        logger.error("❌ TELEGRAM_BOT_TOKEN is None or empty!")
         
-        # Get environment variables
-        self.telegram_token = os.getenv('TELEGRAM_BOT_TOKEN')
-        self.a4f_api_key = os.getenv('A4F_API_KEY')
-        
-        # Enhanced logging for debugging
-        logger.info(f"Telegram token present: {bool(self.telegram_token)}")
-        logger.info(f"A4F API key present: {bool(self.a4f_api_key)}")
-        logger.info(f"A4F API key length: {len(self.a4f_api_key) if self.a4f_api_key else 0}")
-        
-        # Better error handling with specific messages
-        if not self.telegram_token:
-            logger.error("❌ TELEGRAM_BOT_TOKEN missing!")
-            raise ValueError("TELEGRAM_BOT_TOKEN required")
-        
-        if not self.a4f_api_key:
-            logger.error("❌ A4F_API_KEY missing!")
-            raise ValueError("A4F_API_KEY required")
-        
-        logger.info("✅ All environment variables found")
-        
-        # Initialize OpenAI client with A4F API
-        try:
-            self.client = OpenAI(
-                api_key=self.a4f_api_key,
-                base_url="https://api.a4f.co/v1"
-            )
-            logger.info("✅ OpenAI client initialized successfully")
-        except Exception as e:
-            logger.error(f"❌ Failed to initialize OpenAI client: {e}")
-            raise
-        
-        # Memory systems
-        self.user_memory = {}  # Per-user memory (last 10 chats per user)
-        self.group_memory = {}  # Group-wide memory (last 20 chats per group)
-        
-        # Image generation history
-        self.image_history = {}  # Track image generation requests per user
-        
-        # Owner information
-        self.owner_username = "gothicbatman"
-        self.owner_user_id = None  # Will be set when owner interacts
-        
-        logger.info("✅ Dark Bot initialized successfully with DeepSeek R1 + Imagen-3 integration")
+    if a4f_key:
+        logger.info(f"A4F key length: {len(a4f_key)}")
+    else:
+        logger.error("❌ A4F_API_KEY is None or empty!")
+    
+    # === EXISTING INITIALIZATION SECTION ===
+    logger.info("=== Bot Initialization Starting ===")
+    
+    # Store environment variables
+    self.telegram_token = telegram_token
+    self.a4f_api_key = a4f_key
+    
+    # Enhanced logging for debugging
+    logger.info(f"Telegram token present: {bool(self.telegram_token)}")
+    logger.info(f"A4F API key present: {bool(self.a4f_api_key)}")
+    
+    # Better error handling with specific messages
+    if not self.telegram_token:
+        logger.error("❌ TELEGRAM_BOT_TOKEN missing!")
+        raise ValueError("TELEGRAM_BOT_TOKEN required")
+    
+    if not self.a4f_api_key:
+        logger.error("❌ A4F_API_KEY missing!")
+        raise ValueError("A4F_API_KEY required")
+    
+    logger.info("✅ All environment variables found")
+    
+    # Initialize OpenAI client with A4F API
+    try:
+        self.client = OpenAI(
+            api_key=self.a4f_api_key,
+            base_url="https://api.a4f.co/v1"
+        )
+        logger.info("✅ OpenAI client initialized successfully")
+    except Exception as e:
+        logger.error(f"❌ Failed to initialize OpenAI client: {e}")
+        raise
+    
+    # Memory systems
+    self.user_memory = {}
+    self.group_memory = {}
+    self.image_history = {}
+    
+    # Owner information
+    self.owner_username = "gothicbatman"
+    self.owner_user_id = None
+    
+    logger.info("✅ Dark Bot initialized successfully with DeepSeek R1 + Imagen-3 integration")
+
     
     def add_to_user_memory(self, user_id: int, user_message: str, bot_response: str, user_name: str, chat_type: str, chat_title: str = None):
         """Add conversation to user's personal memory"""
