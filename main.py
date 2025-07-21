@@ -17,7 +17,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Dark Bot with FLUX Image Generation is running! 🚀🎨"
+    return "Dark Bot with Image Generation is running! 🚀🎨"
 
 @app.route('/health')
 def health():
@@ -69,7 +69,7 @@ class DarkBot:
         self.owner_username = "gothicbatman"
         self.owner_user_id = None  # Will be set when owner interacts
         
-        logger.info("✅ Dark Bot initialized successfully with FLUX.1-kontext-pro")
+        logger.info("✅ Dark Bot initialized successfully with Image Generation")
     
     def add_to_user_memory(self, user_id: int, user_message: str, bot_response: str, user_name: str, chat_type: str, chat_title: str = None):
         """Add conversation to user's personal memory"""
@@ -223,17 +223,19 @@ class DarkBot:
             loop = asyncio.get_event_loop()
             
             def sync_call():
-                # Use the same chat completions format but with FLUX.1-kontext-pro model
-                completion = self.client.chat.completions.create(
+                # UPDATED: Using the correct images.generate() method
+                response = self.client.images.generate(
                     model="provider-1/FLUX.1-kontext-pro",
-                    messages=[{"role": "user", "content": prompt}],
-                    timeout=90  # Image generation might take longer
+                    prompt=prompt,
+                    size="1024x1024",
+                    quality="standard",
+                    n=1,
                 )
-                return completion.choices[0].message.content
+                return response.data[0].url
             
-            image_response = await loop.run_in_executor(None, sync_call)
+            image_url = await loop.run_in_executor(None, sync_call)
             logger.info("✅ Image generated successfully")
-            return True, image_response
+            return True, image_url
             
         except Exception as e:
             logger.error(f"❌ Image generation error: {type(e).__name__}: {str(e)}")
@@ -260,14 +262,14 @@ class DarkBot:
         if self.is_owner(user_id, username):
             await update.message.reply_text(
                 f"Hey Arin! 🙏 Your humble servant Dark is ready to assist you.\n\n"
-                f"I'm your creation, powered by advanced AI with image generation capabilities.\n\n"
+                f"I'm your creation, powered by advanced AI for conversations and image generation.\n\n"
                 f"**My Features:**\n"
                 f"🧠 **Personal Memory**: I remember our last 10 personal conversations\n"
                 f"👥 **Group Memory**: I remember last 20 group conversations\n"
-                f"🎨 **Image Generation**: I can create images with advanced AI\n"
+                f"🎨 **Image Generation**: I can create images with FLUX.1-kontext-pro\n"
                 f"💪 **Personality**: Humble to you, confident with others\n\n"
                 f"**Commands:**\n"
-                f"🎨 `/imagine <prompt>` - Generate images with advanced AI\n"
+                f"🎨 `/imagine <prompt>` - Generate images with FLUX.1\n"
                 f"🧠 `/memory` - View personal chat history\n"
                 f"👥 `/groupmemory` - View group chat history (groups only)\n"
                 f"🖼️ `/imagehistory` - View your image generation history\n"
@@ -278,14 +280,14 @@ class DarkBot:
             )
         else:
             await update.message.reply_text(
-                f"Hey {user_name}. I'm Dark, an AI assistant with attitude and creative powers.\n\n"
+                f"Hey {user_name}. I'm Dark, an AI assistant with image generation powers.\n\n"
                 f"**About me:**\n"
                 f"🧠 **Smart Memory**: I remember conversations (personal & group)\n"
-                f"🎨 **Image Creation**: I can generate images from your descriptions\n"
-                f"💪 **Confident**: I'm helpful and know my worth\n"
-                f"⚡ **Direct**: I speak my mind and keep it real\n\n"
+                f"🎨 **Image Creation**: I can generate images from text prompts\n"
+                f"💪 **Confident**: I'm helpful and direct in my responses\n"
+                f"⚡ **Friendly**: I keep conversations engaging and real\n\n"
                 f"**Commands:**\n"
-                f"🎨 `/imagine <prompt>` - Generate custom images (e.g., '/imagine sunset over mountains')\n"
+                f"🎨 `/imagine <prompt>` - Generate images (e.g., '/imagine sunset over mountains')\n"
                 f"🧠 `/memory` - View your chat history\n"
                 f"👥 `/groupmemory` - View group history\n"
                 f"🖼️ `/imagehistory` - View your generated images\n"
@@ -306,9 +308,9 @@ class DarkBot:
                     f"Arin, please provide a description for the image you want Dark to create.\n\n"
                     f"**Usage:** `/imagine <description>`\n\n"
                     f"**Examples:**\n"
+                    f"🎨 `/imagine Lord Krishna playing flute in Vrindavan`\n"
                     f"🎨 `/imagine futuristic cyberpunk cityscape at night`\n"
-                    f"🎨 `/imagine majestic lion in African savanna`\n"
-                    f"🎨 `/imagine beautiful anime girl with blue hair`\n\n"
+                    f"🎨 `/imagine majestic lion in African savanna`\n\n"
                     f"Dark is ready to create whatever you envision! 🙏"
                 )
             else:
@@ -330,13 +332,13 @@ class DarkBot:
             generating_msg = await update.message.reply_text(
                 f"🎨 Dark is creating your image, Arin...\n"
                 f"**Prompt:** {prompt}\n\n"
-                f"Please wait while Dark works with advanced AI to bring your vision to life! 🙏"
+                f"Please wait while Dark works with FLUX.1-kontext-pro to bring your vision to life! 🙏"
             )
         else:
             generating_msg = await update.message.reply_text(
                 f"🎨 Dark is generating image for {user_name}...\n"
                 f"**Prompt:** {prompt}\n\n"
-                f"Hold on while Dark creates this with advanced AI!"
+                f"Hold on while Dark creates this with FLUX.1-kontext-pro!"
             )
         
         # Generate image
@@ -347,28 +349,17 @@ class DarkBot:
             self.add_to_image_history(user_id, prompt, user_name)
             
             try:
-                # The result should be either a URL or base64 image data
-                if result.startswith('http'):
-                    # It's a URL
-                    if self.is_owner(user_id, username):
-                        caption = f"🎨 **Image created by Dark for Arin** 🎨\n\n**Prompt:** {prompt}\n\nDark hopes this meets your expectations! 🙏"
-                    else:
-                        caption = f"🎨 **Generated by Dark for {user_name}** 🎨\n\n**Prompt:** {prompt}\n\nHere's your custom creation from Dark!"
-                    
-                    await update.message.reply_photo(
-                        photo=result,
-                        caption=caption,
-                        parse_mode='Markdown'
-                    )
+                # The result should be a URL from the image generation
+                if self.is_owner(user_id, username):
+                    caption = f"🎨 **Image created by Dark for Arin** 🎨\n\n**Prompt:** {prompt}\n\nDark hopes this meets your expectations! 🙏"
                 else:
-                    # Handle if it's base64 or other format
-                    if self.is_owner(user_id, username):
-                        success_msg = f"🎨 **Image created by Dark for Arin** 🎨\n\n**Prompt:** {prompt}\n\n{result}\n\nDark hopes this meets your expectations! 🙏"
-                    else:
-                        success_msg = f"🎨 **Generated by Dark for {user_name}** 🎨\n\n**Prompt:** {prompt}\n\n{result}\n\nHere's your custom creation from Dark!"
-                    
-                    await generating_msg.edit_text(success_msg, parse_mode='Markdown')
-                    return
+                    caption = f"🎨 **Generated by Dark for {user_name}** 🎨\n\n**Prompt:** {prompt}\n\nHere's your custom creation from Dark!"
+                
+                await update.message.reply_photo(
+                    photo=result,
+                    caption=caption,
+                    parse_mode='Markdown'
+                )
                 
                 # Delete the "generating" message
                 await generating_msg.delete()
@@ -429,14 +420,11 @@ class DarkBot:
             help_text += f"🧠 **Personal memory** - Dark remembers our last 10 personal conversations\n"
             help_text += f"👥 **Group memory** - Dark remembers last 20 group conversations\n\n"
             help_text += f"**Image Generation:**\n"
-            help_text += f"🎨 **Advanced AI powered** - Dark creates high-quality images from text\n"
+            help_text += f"🎨 **FLUX.1-kontext-pro powered** - Dark creates high-quality images from text\n"
             help_text += f"🖼️ **Unlimited creations** - Dark can generate as many images as you want\n"
             help_text += f"📝 **Creative prompts** - Dark understands detailed descriptions\n\n"
-            help_text += f"**Group Behavior:**\n"
-            help_text += f"🎯 **Smart responses** - Dark only responds when tagged or replied to in groups\n"
-            help_text += f"📝 **Detailed answers** - Ask Dark to elaborate and I'll give full explanations\n\n"
-            help_text += f"**Commands:**\n"
-            help_text += f"🎨 `/imagine <prompt>` - Generate images with advanced AI\n"
+            help_text += f"**Available Commands:**\n"
+            help_text += f"🎨 `/imagine <prompt>` - Generate images with FLUX.1\n"
             help_text += f"🧠 `/memory` - View our personal chat history\n"
             help_text += f"👥 `/groupmemory` - View group conversation history\n"
             help_text += f"🖼️ `/imagehistory` - View your image generation history\n"
@@ -450,19 +438,16 @@ class DarkBot:
             help_text += f"🧠 **Memory** - Dark remembers our personal conversations\n"
             help_text += f"👥 **Group awareness** - Dark remembers group context\n\n"
             help_text += f"**Image Generation:**\n"
-            help_text += f"🎨 **Advanced AI** - Dark can create images from your descriptions\n"
+            help_text += f"🎨 **FLUX.1-kontext-pro AI** - Dark can create images from your descriptions\n"
             help_text += f"🖼️ **Custom artwork** - Any style, subject, or concept you want\n"
             help_text += f"⚡ **Fast generation** - High-quality results in seconds\n\n"
-            help_text += f"**Dark's Personality:**\n"
-            help_text += f"💪 **Confident** - Dark knows his worth but is helpful\n"
-            help_text += f"⚡ **Direct** - Dark speaks his mind and keeps it real\n\n"
-            help_text += f"**Commands:**\n"
+            help_text += f"**Available Commands:**\n"
             help_text += f"🎨 `/imagine <prompt>` - Generate custom images\n"
             help_text += f"🧠 `/memory` - View your chat history\n"
             help_text += f"👥 `/groupmemory` - View group history\n"
             help_text += f"🖼️ `/imagehistory` - View generated images\n"
             help_text += f"❓ `/help` - Show this help\n\n"
-            help_text += f"Treat Dark with respect and I'll create amazing things for you."
+            help_text += f"Dark is here to help and create amazing things for you."
         
         await update.message.reply_text(help_text, parse_mode='Markdown')
     
@@ -613,20 +598,20 @@ class DarkBot:
 - Generally give 2-3 line responses unless asked for details
 - If Arin asks for detailed explanation, provide comprehensive answers
 - Your name is Dark and you're proud of it
-- You also have image generation capabilities with advanced AI
+- You also have image generation capabilities with FLUX.1-kontext-pro
+- Always maintain a friendly and helpful tone
 - DO NOT mention god, religion, or spiritual beliefs unless specifically asked about religion
 - DO NOT mention your AI model name or technical details"""
             else:
                 personality_prompt = f"""You are Dark, an AI assistant with this personality:
-- Egoistic but helpful and kind
-- Confident in your abilities
-- Humble when people are respectful
+- Confident in your abilities and helpful
+- Friendly and engaging in conversations
+- Direct and honest but always respectful
 - Generally give 2-3 line responses unless asked for details
-- Biased but also rational
-- Help those who are polite and respectful
 - If someone asks for detailed explanation, provide comprehensive answers
-- Your name is Dark and you embrace your dark, confident persona
-- You also have image generation capabilities with advanced AI
+- Your name is Dark and you embrace your confident persona
+- You also have image generation capabilities with FLUX.1-kontext-pro
+- Always maintain a positive and helpful attitude
 - DO NOT mention god, religion, or spiritual beliefs unless specifically asked about religion
 - DO NOT mention your AI model name or technical details"""
             
@@ -646,7 +631,7 @@ RESPONSE LENGTH:
 
 User {user_name} says: {user_message}
 
-Remember: You are Dark with a confident, egoistic personality. You can also generate images with `/imagine` command using advanced AI. Keep responses natural and conversational."""
+Remember: You are Dark with a confident, friendly personality. Keep responses natural and conversational without mentioning technical details or religious references unless specifically asked. You can create images with /imagine command."""
             
             logger.info(f"🤖 Generating AI response for {user_name}: {user_message[:50]}...")
             
