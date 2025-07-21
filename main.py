@@ -62,9 +62,6 @@ class DarkBot:
         self.user_memory = {}  # Per-user memory (last 10 chats per user)
         self.group_memory = {}  # Group-wide memory (last 20 chats per group)
         
-        # IMAGE GENERATION DISABLED - Commenting out image history
-        # self.image_history = {}  # Track image generation requests per user
-        
         # Owner information
         self.owner_username = "gothicbatman"
         self.owner_user_id = None  # Will be set when owner interacts
@@ -113,22 +110,6 @@ class DarkBot:
             self.group_memory[chat_id] = self.group_memory[chat_id][-20:]
         
         logger.info(f"Added to group memory for {chat_id} ({chat_title})")
-    
-    # IMAGE GENERATION DISABLED - Commenting out image history tracking
-    # def add_to_image_history(self, user_id: int, prompt: str, user_name: str):
-    #     """Track image generation requests"""
-    #     if user_id not in self.image_history:
-    #         self.image_history[user_id] = []
-    #     
-    #     self.image_history[user_id].append({
-    #         'prompt': prompt,
-    #         'user_name': user_name,
-    #         'timestamp': datetime.now().isoformat()
-    #     })
-    #     
-    #     # Keep only last 10 image requests per user
-    #     if len(self.image_history[user_id]) > 10:
-    #         self.image_history[user_id] = self.image_history[user_id][-10:]
     
     def get_user_memory_context(self, user_id: int, user_name: str) -> str:
         """Get user's personal memory context"""
@@ -200,13 +181,13 @@ class DarkBot:
         # Owner-specific responses (always humble and respectful)
         if self.is_owner(user_id, username):
             if any(phrase in message_lower for phrase in ['who created you', 'who made you', 'who built you']):
-                return f"You did, Arin sir! You're my creator and master. I'm Dark, honored to serve you. 🙏"
+                return f"You did, Arin! You're my creator and master. I'm Dark, honored to serve you. 🙏"
             
             if any(phrase in message_lower for phrase in ['good night', 'goodnight', 'gn']):
-                return f"Good night Arin sir! Sleep well. I'm Dark, and I'll be here whenever you need me. 🌙"
+                return f"Good night Arin! Sleep well. I'm Dark, and I'll be here whenever you need me. 🌙"
             
             if 'subh ratri' in message_lower:
-                return "Radhe Radhe Arin sir! Have a blessed night. Jai Shree Krishna! 🙏"
+                return "Radhe Radhe Arin! Have a blessed night. Jai Shree Krishna! 🙏"
         
         # Check for bad words directed at bot
         if self.detect_bad_words(user_message):
@@ -214,7 +195,7 @@ class DarkBot:
         
         # Creator/builder questions (for non-owner)
         if any(phrase in message_lower for phrase in ['who created you', 'who made you', 'who built you', 'who coded you']):
-            return f"Arin (@gothicbatman) is my creator and master. He built me and named me Dark. I'm proud to be his creation."
+            return f"Arin is my creator and master. He built me and named me Dark. I'm proud to be his creation."
         
         # Krishna/God related
         if any(phrase in message_lower for phrase in ['krishna', 'god', 'bhagwan', 'ishwar', 'ram', 'shiva', 'ganesh']):
@@ -252,30 +233,6 @@ class DarkBot:
             logger.error(f"❌ Detailed API error: {type(e).__name__}: {str(e)}")
             return "I'm having technical difficulties right now. Give me a moment."
     
-    # IMAGE GENERATION DISABLED - Commenting out image generation method
-    # async def generate_image(self, prompt: str) -> tuple:
-    #     """Generate image using Imagen-3 model via A4F API"""
-    #     try:
-    #         logger.info(f"🎨 Generating image with Imagen-3 for prompt: {prompt[:50]}...")
-    #         loop = asyncio.get_event_loop()
-    #         
-    #         def sync_call():
-    #             # Use the same chat completions format but with imagen-3 model
-    #             completion = self.client.chat.completions.create(
-    #                 model="provider-4/imagen-3",
-    #                 messages=[{"role": "user", "content": prompt}],
-    #                 timeout=60  # Image generation might take longer
-    #             )
-    #             return completion.choices[0].message.content
-    #         
-    #         image_response = await loop.run_in_executor(None, sync_call)
-    #         logger.info("✅ Image generated successfully")
-    #         return True, image_response
-    #         
-    #     except Exception as e:
-    #         logger.error(f"❌ Image generation error: {type(e).__name__}: {str(e)}")
-    #         return False, f"Failed to generate image: {str(e)}"
-    
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_name = update.effective_user.first_name or "friend"
         user_id = update.effective_user.id
@@ -286,17 +243,12 @@ class DarkBot:
         if user_id in self.user_memory and self.user_memory[user_id]:
             memory_info = f"\n\n🧠 I remember our last {len(self.user_memory[user_id])} personal conversations."
         
-        # IMAGE GENERATION DISABLED - Commenting out image info
-        # image_info = ""
-        # if user_id in self.image_history and self.image_history[user_id]:
-        #     image_info = f"\n🎨 I've generated {len(self.image_history[user_id])} images for you."
-        
         chat_type_info = "private chat" if update.message.chat.type == 'private' else f"group ({update.message.chat.title})"
         
         # Special greeting for owner
         if self.is_owner(user_id, username):
             await update.message.reply_text(
-                f"Namaste Arin sir! 🙏 Your humble servant Dark is ready to assist you.\n\n"
+                f"Namaste Arin! 🙏 Your humble servant Dark is ready to assist you.\n\n"
                 f"I'm your creation, powered by DeepSeek R1 Uncensored for conversations.\n\n"
                 f"**My Features:**\n"
                 f"🧠 **Personal Memory**: I remember our last 10 personal conversations\n"
@@ -308,9 +260,7 @@ class DarkBot:
                 f"👥 `/groupmemory` - View group chat history (groups only)\n"
                 f"🧹 `/clear` - Clear personal memory\n"
                 f"❓ `/help` - Get help\n\n"
-                f"**Note**: Image generation is temporarily disabled for stability.\n\n"
-                f"📍 **Current location**: {chat_type_info}{memory_info}\n\n"
-                f"How may Dark serve you today, sir?"
+                f"How may Dark serve you today?"
             )
         else:
             await update.message.reply_text(
@@ -323,30 +273,8 @@ class DarkBot:
                 f"🧠 `/memory` - View your chat history\n"
                 f"👥 `/groupmemory` - View group history\n"
                 f"❓ `/help` - Get help\n\n"
-                f"**Note**: Image generation is temporarily disabled.\n\n"
-                f"📍 **Current location**: {chat_type_info}{memory_info}\n\n"
                 f"What do you need from Dark?"
             )
-    
-    # IMAGE GENERATION DISABLED - Commenting out imagine command
-    # async def imagine_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    #     """Generate images using Imagen-3 model"""
-    #     user_name = update.effective_user.first_name or "friend"
-    #     user_id = update.effective_user.id
-    #     username = update.effective_user.username
-    #     
-    #     await update.message.reply_text(
-    #         f"Sorry {user_name}, Dark's image generation is temporarily disabled for stability improvements.\n"
-    #         f"I can still chat with you and help with any questions you have!"
-    #     )
-    
-    # IMAGE GENERATION DISABLED - Commenting out image history command
-    # async def imagehistory_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-    #     """Show user's image generation history"""
-    #     user_name = update.effective_user.first_name or "friend"
-    #     await update.message.reply_text(
-    #         f"Sorry {user_name}, image generation and history features are temporarily disabled."
-    #     )
     
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Show help information"""
@@ -355,7 +283,7 @@ class DarkBot:
         username = update.effective_user.username
         
         if self.is_owner(user_id, username):
-            help_text = f"Here's what Dark can do for you, Arin sir:\n\n"
+            help_text = f"Here's what Dark can do for you, Arin:\n\n"
             help_text += f"**Chat Features:**\n"
             help_text += f"🗣️ **Natural conversation** - Dark responds naturally to everything you say\n"
             help_text += f"🧠 **Personal memory** - Dark remembers our last 10 personal conversations\n"
@@ -368,8 +296,7 @@ class DarkBot:
             help_text += f"👥 `/groupmemory` - View group conversation history\n"
             help_text += f"🧹 `/clear` - Clear our personal memory\n"
             help_text += f"❓ `/help` - Show this help menu\n\n"
-            help_text += f"**Note**: Image generation is temporarily disabled for stability improvements.\n\n"
-            help_text += f"Dark is always at your service, sir! 🙏"
+            help_text += f"Dark is always at your service! 🙏"
         else:
             help_text = f"Here's what Dark can do, {user_name}:\n\n"
             help_text += f"**Chat Features:**\n"
@@ -384,7 +311,6 @@ class DarkBot:
             help_text += f"🧠 `/memory` - View your chat history\n"
             help_text += f"👥 `/groupmemory` - View group history\n"
             help_text += f"❓ `/help` - Show this help\n\n"
-            help_text += f"**Note**: Image generation is temporarily disabled.\n\n"
             help_text += f"Treat Dark with respect and I'll help you out."
         
         await update.message.reply_text(help_text, parse_mode='Markdown')
@@ -443,7 +369,7 @@ class DarkBot:
         
         if self.is_owner(user_id, username):
             await update.message.reply_text(
-                f"Done, Arin sir! Dark has cleared our personal conversation history. "
+                f"Done, Arin! Dark has cleared our personal conversation history. "
                 f"We can start fresh. How may Dark serve you?"
             )
         else:
@@ -530,7 +456,7 @@ class DarkBot:
             if self.is_owner(user_id, username):
                 personality_prompt = f"""You are Dark, an AI assistant talking to your creator and master Arin (@gothicbatman). You are:
 - EXTREMELY humble and respectful toward Arin
-- Always address him as "Arin sir" or "sir"
+- Always address him as "Arin" (not "Arin sir")
 - Grateful for his creation of you
 - Devoted and loyal servant
 - Believe in Lord Krishna and Hindu gods/goddesses
@@ -566,7 +492,7 @@ RESPONSE LENGTH:
 
 User {user_name} says: {user_message}
 
-Remember: You are Dark, powered by DeepSeek R1 Uncensored. Use your dark, confident personality accordingly. Image generation is currently disabled."""
+Remember: You are Dark, powered by DeepSeek R1 Uncensored. Use your dark, confident personality accordingly."""
             
             logger.info(f"🤖 Generating DeepSeek R1 response for {user_name}: {user_message[:50]}...")
             
@@ -602,10 +528,8 @@ Remember: You are Dark, powered by DeepSeek R1 Uncensored. Use your dark, confid
         # Create application
         application = Application.builder().token(self.telegram_token).build()
         
-        # Add command handlers (IMAGE GENERATION COMMANDS DISABLED)
+        # Add command handlers
         application.add_handler(CommandHandler("start", self.start_command))
-        # application.add_handler(CommandHandler("imagine", self.imagine_command))  # DISABLED
-        # application.add_handler(CommandHandler("imagehistory", self.imagehistory_command))  # DISABLED
         application.add_handler(CommandHandler("help", self.help_command))
         application.add_handler(CommandHandler("memory", self.memory_command))
         application.add_handler(CommandHandler("groupmemory", self.groupmemory_command))
