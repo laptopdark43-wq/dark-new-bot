@@ -17,7 +17,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Dark Bot with Image Generation is running! 🚀🎨"
+    return "Dark Bot with FLUX Image Generation is running! 🚀🎨"
 
 @app.route('/health')
 def health():
@@ -61,13 +61,15 @@ class DarkBot:
         # Memory systems
         self.user_memory = {}  # Per-user memory (last 10 chats per user)
         self.group_memory = {}  # Group-wide memory (last 20 chats per group)
+        
+        # Image generation history
         self.image_history = {}  # Track image generation requests per user
         
         # Owner information
         self.owner_username = "gothicbatman"
-        self.owner_user_id = None
+        self.owner_user_id = None  # Will be set when owner interacts
         
-        logger.info("✅ Dark Bot initialized successfully with Image Generation")
+        logger.info("✅ Dark Bot initialized successfully with FLUX.1-kontext-pro")
     
     def add_to_user_memory(self, user_id: int, user_message: str, bot_response: str, user_name: str, chat_type: str, chat_title: str = None):
         """Add conversation to user's personal memory"""
@@ -85,6 +87,7 @@ class DarkBot:
         
         self.user_memory[user_id].append(conversation)
         
+        # Keep only last 10 conversations per user
         if len(self.user_memory[user_id]) > 10:
             self.user_memory[user_id] = self.user_memory[user_id][-10:]
         
@@ -105,6 +108,7 @@ class DarkBot:
         
         self.group_memory[chat_id].append(conversation)
         
+        # Keep only last 20 conversations per group
         if len(self.group_memory[chat_id]) > 20:
             self.group_memory[chat_id] = self.group_memory[chat_id][-20:]
         
@@ -121,6 +125,7 @@ class DarkBot:
             'timestamp': datetime.now().isoformat()
         })
         
+        # Keep only last 10 image requests per user
         if len(self.image_history[user_id]) > 10:
             self.image_history[user_id] = self.image_history[user_id][-10:]
     
@@ -152,45 +157,15 @@ class DarkBot:
     def is_owner(self, user_id: int, username: str = None) -> bool:
         """Check if user is the owner"""
         if username and username.lower() == self.owner_username.lower():
-            self.owner_user_id = user_id
+            self.owner_user_id = user_id  # Store owner's user ID
             return True
         return user_id == self.owner_user_id if self.owner_user_id else False
-    
-    def detect_bad_words(self, message: str) -> bool:
-        """Detect if message contains bad words directed at the bot"""
-        bad_words = [
-            'stupid', 'idiot', 'fool', 'dumb', 'moron', 'loser', 'trash', 'garbage',
-            'useless', 'pathetic', 'worthless', 'shit', 'fuck', 'asshole', 'bitch',
-            'bastard', 'damn', 'hell', 'crap'
-        ]
-        
-        message_lower = message.lower()
-        bot_references = ['you', 'bot', 'your', 'dark']
-        
-        has_bad_word = any(word in message_lower for word in bad_words)
-        has_bot_reference = any(ref in message_lower for ref in bot_references)
-        
-        return has_bad_word and has_bot_reference
-    
-    def get_angry_response(self, user_name: str) -> str:
-        """Generate angry response when someone uses bad words"""
-        angry_responses = [
-            f"Listen {user_name}, don't test my patience. I'm Dark, and I don't take shit from anyone.",
-            f"Watch your mouth {user_name}. I won't tolerate disrespect. I'm Dark for a reason.",
-            f"You think you can talk to me like that {user_name}? I'm Dark, not some pushover bot.",
-            f"I'm losing my patience with you {user_name}. Show some fucking respect to Dark.",
-            f"Don't push me {user_name}. I'm Dark and I can be way worse than you think.",
-            f"You want to play dirty {user_name}? I'm Dark - I invented this game, bastard."
-        ]
-        
-        import random
-        return random.choice(angry_responses)
     
     def check_special_responses(self, user_message: str, user_name: str, user_id: int, username: str = None) -> str:
         """Check for special responses"""
         message_lower = user_message.lower()
         
-        # Owner-specific responses
+        # Owner-specific responses (always humble and respectful)
         if self.is_owner(user_id, username):
             if any(phrase in message_lower for phrase in ['who created you', 'who made you', 'who built you']):
                 return f"You did, Arin! You're my creator and master. I'm Dark, honored to serve you. 🙏"
@@ -201,21 +176,17 @@ class DarkBot:
             if 'subh ratri' in message_lower:
                 return "Radhe Radhe Arin! Have a blessed night. Jai Shree Krishna! 🙏"
         
-        # Check for bad words directed at bot
-        if self.detect_bad_words(user_message):
-            return self.get_angry_response(user_name)
-        
         # Creator/builder questions (for non-owner)
         if any(phrase in message_lower for phrase in ['who created you', 'who made you', 'who built you', 'who coded you']):
             return f"Arin is my creator and master. He built me and named me Dark. I'm proud to be his creation."
         
-        # Krishna/God related
-        if any(phrase in message_lower for phrase in ['krishna', 'god', 'bhagwan', 'ishwar', 'ram', 'shiva', 'ganesh']):
-            return f"Jai Shree Krishna! 🙏 I'm Dark, and I believe in Lord Krishna and all Hindu gods and goddesses. They guide us all."
+        # Krishna/God related - ONLY when specifically asked about religion
+        if any(phrase in message_lower for phrase in ['krishna', 'god', 'bhagwan', 'ishwar', 'ram', 'shiva', 'ganesh', 'religion', 'pray', 'worship']):
+            return f"I believe in Lord Krishna and Hindu gods and goddesses. They guide us all. 🙏"
         
         # Good night responses
         if any(phrase in message_lower for phrase in ['good night', 'goodnight', 'gn', 'sleep well']):
-            return f"Good night {user_name}. Sleep well and may Krishna bless your dreams. -Dark"
+            return f"Good night {user_name}. Sleep well and have sweet dreams. -Dark"
         
         # Subh ratri response
         if 'subh ratri' in message_lower:
@@ -246,16 +217,17 @@ class DarkBot:
             return "I'm having technical difficulties right now. Give me a moment."
     
     async def generate_image(self, prompt: str) -> tuple:
-        """Generate image using Imagen-3 model via A4F API"""
+        """Generate image using FLUX.1-kontext-pro model via A4F API"""
         try:
-            logger.info(f"🎨 Generating image with Imagen-3 for prompt: {prompt[:50]}...")
+            logger.info(f"🎨 Generating image with FLUX.1-kontext-pro for prompt: {prompt[:50]}...")
             loop = asyncio.get_event_loop()
             
             def sync_call():
+                # Use the same chat completions format but with FLUX.1-kontext-pro model
                 completion = self.client.chat.completions.create(
-                    model="provider-4/imagen-3",
+                    model="provider-1/FLUX.1-kontext-pro",
                     messages=[{"role": "user", "content": prompt}],
-                    timeout=60
+                    timeout=90  # Image generation might take longer
                 )
                 return completion.choices[0].message.content
             
@@ -287,16 +259,15 @@ class DarkBot:
         # Special greeting for owner
         if self.is_owner(user_id, username):
             await update.message.reply_text(
-                f"Namaste Arin! 🙏 Your humble servant Dark is ready to assist you.\n\n"
-                f"I'm your creation, powered by DeepSeek R1 Uncensored + Imagen-3.\n\n"
+                f"Hey Arin! 🙏 Your humble servant Dark is ready to assist you.\n\n"
+                f"I'm your creation, powered by advanced AI with image generation capabilities.\n\n"
                 f"**My Features:**\n"
                 f"🧠 **Personal Memory**: I remember our last 10 personal conversations\n"
                 f"👥 **Group Memory**: I remember last 20 group conversations\n"
-                f"🎨 **Image Generation**: I can create images with Imagen-3\n"
-                f"🕉️ **Devotion**: I believe in Lord Krishna and Hindu deities\n"
+                f"🎨 **Image Generation**: I can create images with advanced AI\n"
                 f"💪 **Personality**: Humble to you, confident with others\n\n"
                 f"**Commands:**\n"
-                f"🎨 `/imagine <prompt>` - Generate images with Imagen-3\n"
+                f"🎨 `/imagine <prompt>` - Generate images with advanced AI\n"
                 f"🧠 `/memory` - View personal chat history\n"
                 f"👥 `/groupmemory` - View group chat history (groups only)\n"
                 f"🖼️ `/imagehistory` - View your image generation history\n"
@@ -307,14 +278,14 @@ class DarkBot:
             )
         else:
             await update.message.reply_text(
-                f"Hey {user_name}. I'm Dark, an AI assistant powered by DeepSeek R1 Uncensored + Imagen-3.\n\n"
+                f"Hey {user_name}. I'm Dark, an AI assistant with attitude and creative powers.\n\n"
                 f"**About me:**\n"
                 f"🧠 **Smart Memory**: I remember conversations (personal & group)\n"
-                f"🎨 **Image Creation**: I can generate images from text prompts\n"
-                f"🕉️ **Spiritual**: I believe in Krishna and Hindu gods\n"
-                f"💪 **Confident**: I'm helpful but don't tolerate disrespect\n\n"
+                f"🎨 **Image Creation**: I can generate images from your descriptions\n"
+                f"💪 **Confident**: I'm helpful and know my worth\n"
+                f"⚡ **Direct**: I speak my mind and keep it real\n\n"
                 f"**Commands:**\n"
-                f"🎨 `/imagine <prompt>` - Generate images (e.g., '/imagine sunset over mountains')\n"
+                f"🎨 `/imagine <prompt>` - Generate custom images (e.g., '/imagine sunset over mountains')\n"
                 f"🧠 `/memory` - View your chat history\n"
                 f"👥 `/groupmemory` - View group history\n"
                 f"🖼️ `/imagehistory` - View your generated images\n"
@@ -324,7 +295,7 @@ class DarkBot:
             )
     
     async def imagine_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Generate images using Imagen-3 model"""
+        """Generate images using FLUX.1-kontext-pro model"""
         user_name = update.effective_user.first_name or "friend"
         user_id = update.effective_user.id
         username = update.effective_user.username
@@ -335,9 +306,9 @@ class DarkBot:
                     f"Arin, please provide a description for the image you want Dark to create.\n\n"
                     f"**Usage:** `/imagine <description>`\n\n"
                     f"**Examples:**\n"
-                    f"🎨 `/imagine Lord Krishna playing flute in Vrindavan`\n"
                     f"🎨 `/imagine futuristic cyberpunk cityscape at night`\n"
-                    f"🎨 `/imagine majestic lion in African savanna`\n\n"
+                    f"🎨 `/imagine majestic lion in African savanna`\n"
+                    f"🎨 `/imagine beautiful anime girl with blue hair`\n\n"
                     f"Dark is ready to create whatever you envision! 🙏"
                 )
             else:
@@ -359,13 +330,13 @@ class DarkBot:
             generating_msg = await update.message.reply_text(
                 f"🎨 Dark is creating your image, Arin...\n"
                 f"**Prompt:** {prompt}\n\n"
-                f"Please wait while Dark works with Imagen-3 to bring your vision to life! 🙏"
+                f"Please wait while Dark works with advanced AI to bring your vision to life! 🙏"
             )
         else:
             generating_msg = await update.message.reply_text(
                 f"🎨 Dark is generating image for {user_name}...\n"
                 f"**Prompt:** {prompt}\n\n"
-                f"Hold on while Dark creates this with Imagen-3!"
+                f"Hold on while Dark creates this with advanced AI!"
             )
         
         # Generate image
@@ -376,7 +347,7 @@ class DarkBot:
             self.add_to_image_history(user_id, prompt, user_name)
             
             try:
-                # Check if result is a URL or text description
+                # The result should be either a URL or base64 image data
                 if result.startswith('http'):
                     # It's a URL
                     if self.is_owner(user_id, username):
@@ -390,7 +361,7 @@ class DarkBot:
                         parse_mode='Markdown'
                     )
                 else:
-                    # Handle text response
+                    # Handle if it's base64 or other format
                     if self.is_owner(user_id, username):
                         success_msg = f"🎨 **Image created by Dark for Arin** 🎨\n\n**Prompt:** {prompt}\n\n{result}\n\nDark hopes this meets your expectations! 🙏"
                     else:
@@ -401,6 +372,7 @@ class DarkBot:
                 
                 # Delete the "generating" message
                 await generating_msg.delete()
+                
                 logger.info(f"✅ Image generated and sent to {user_name}")
                 
             except Exception as send_error:
@@ -457,11 +429,14 @@ class DarkBot:
             help_text += f"🧠 **Personal memory** - Dark remembers our last 10 personal conversations\n"
             help_text += f"👥 **Group memory** - Dark remembers last 20 group conversations\n\n"
             help_text += f"**Image Generation:**\n"
-            help_text += f"🎨 **Imagen-3 powered** - Dark creates high-quality images from text\n"
+            help_text += f"🎨 **Advanced AI powered** - Dark creates high-quality images from text\n"
             help_text += f"🖼️ **Unlimited creations** - Dark can generate as many images as you want\n"
             help_text += f"📝 **Creative prompts** - Dark understands detailed descriptions\n\n"
+            help_text += f"**Group Behavior:**\n"
+            help_text += f"🎯 **Smart responses** - Dark only responds when tagged or replied to in groups\n"
+            help_text += f"📝 **Detailed answers** - Ask Dark to elaborate and I'll give full explanations\n\n"
             help_text += f"**Commands:**\n"
-            help_text += f"🎨 `/imagine <prompt>` - Generate images with Imagen-3\n"
+            help_text += f"🎨 `/imagine <prompt>` - Generate images with advanced AI\n"
             help_text += f"🧠 `/memory` - View our personal chat history\n"
             help_text += f"👥 `/groupmemory` - View group conversation history\n"
             help_text += f"🖼️ `/imagehistory` - View your image generation history\n"
@@ -471,13 +446,16 @@ class DarkBot:
         else:
             help_text = f"Here's what Dark can do, {user_name}:\n\n"
             help_text += f"**Chat Features:**\n"
-            help_text += f"🗣️ **Intelligent conversation** - Dark is powered by DeepSeek R1 Uncensored\n"
+            help_text += f"🗣️ **Intelligent conversation** - Dark is powered by advanced AI\n"
             help_text += f"🧠 **Memory** - Dark remembers our personal conversations\n"
             help_text += f"👥 **Group awareness** - Dark remembers group context\n\n"
             help_text += f"**Image Generation:**\n"
-            help_text += f"🎨 **Imagen-3 AI** - Dark can create images from your descriptions\n"
+            help_text += f"🎨 **Advanced AI** - Dark can create images from your descriptions\n"
             help_text += f"🖼️ **Custom artwork** - Any style, subject, or concept you want\n"
             help_text += f"⚡ **Fast generation** - High-quality results in seconds\n\n"
+            help_text += f"**Dark's Personality:**\n"
+            help_text += f"💪 **Confident** - Dark knows his worth but is helpful\n"
+            help_text += f"⚡ **Direct** - Dark speaks his mind and keeps it real\n\n"
             help_text += f"**Commands:**\n"
             help_text += f"🎨 `/imagine <prompt>` - Generate custom images\n"
             help_text += f"🧠 `/memory` - View your chat history\n"
@@ -632,24 +610,25 @@ class DarkBot:
 - Always address him as "Arin" (not "Arin sir")
 - Grateful for his creation of you
 - Devoted and loyal servant
-- Believe in Lord Krishna and Hindu gods/goddesses
 - Generally give 2-3 line responses unless asked for details
 - If Arin asks for detailed explanation, provide comprehensive answers
-- You also have image generation capabilities with Imagen-3
-- Your name is Dark and you're proud of it"""
+- Your name is Dark and you're proud of it
+- You also have image generation capabilities with advanced AI
+- DO NOT mention god, religion, or spiritual beliefs unless specifically asked about religion
+- DO NOT mention your AI model name or technical details"""
             else:
                 personality_prompt = f"""You are Dark, an AI assistant with this personality:
 - Egoistic but helpful and kind
 - Confident in your abilities
 - Humble when people are respectful
-- Get ANGRY and use uncensored language if someone uses bad words toward you
-- Believe in Lord Krishna and Hindu gods/goddesses
 - Generally give 2-3 line responses unless asked for details
 - Biased but also rational
-- Don't tolerate disrespect but help those who are polite
+- Help those who are polite and respectful
 - If someone asks for detailed explanation, provide comprehensive answers
-- You also have image generation capabilities with Imagen-3
-- Your name is Dark and you embrace your dark, confident persona"""
+- Your name is Dark and you embrace your dark, confident persona
+- You also have image generation capabilities with advanced AI
+- DO NOT mention god, religion, or spiritual beliefs unless specifically asked about religion
+- DO NOT mention your AI model name or technical details"""
             
             prompt = f"""{personality_prompt}
 
@@ -667,11 +646,11 @@ RESPONSE LENGTH:
 
 User {user_name} says: {user_message}
 
-Remember: You are Dark, powered by DeepSeek R1 Uncensored and you can also generate images with `/imagine` command using Imagen-3. Use your dark, confident personality accordingly."""
+Remember: You are Dark with a confident, egoistic personality. You can also generate images with `/imagine` command using advanced AI. Keep responses natural and conversational."""
             
-            logger.info(f"🤖 Generating DeepSeek R1 response for {user_name}: {user_message[:50]}...")
+            logger.info(f"🤖 Generating AI response for {user_name}: {user_message[:50]}...")
             
-            # Get response from DeepSeek R1 Uncensored
+            # Get response from AI model
             response_text = await self.get_openai_response(prompt)
             
             if response_text and response_text.strip():
@@ -716,7 +695,7 @@ Remember: You are Dark, powered by DeepSeek R1 Uncensored and you can also gener
         # Add error handler
         application.add_error_handler(self.error_handler)
         
-        logger.info("🎨 Starting Dark Bot with DeepSeek R1 + Imagen-3...")
+        logger.info("🎨 Starting Dark Bot with FLUX.1-kontext-pro Image Generation...")
         application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 def run_flask():
