@@ -1,4 +1,5 @@
 python-telegram-bot==20.3
 openai==1.54.5
 flask==2.3.3
+pillow==10.0.0
 requests==2.31.0
