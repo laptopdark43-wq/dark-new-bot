@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: dark-telegram-bot
+    env: python
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: python main.py
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: A4F_API_KEY
+        sync: false
