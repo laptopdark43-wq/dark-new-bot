@@ -143,37 +143,6 @@ class DarkBot:
             return True
         return user_id == self.owner_user_id if self.owner_user_id else False
     
-    def detect_bad_words(self, message: str) -> bool:
-        """Detect if message contains bad words directed at the bot"""
-        bad_words = [
-            'stupid', 'idiot', 'fool', 'dumb', 'moron', 'loser', 'trash', 'garbage',
-            'useless', 'pathetic', 'worthless', 'shit', 'fuck', 'asshole', 'bitch',
-            'bastard', 'damn', 'hell', 'crap'
-        ]
-        
-        message_lower = message.lower()
-        # Check if bad words are directed at the bot
-        bot_references = ['you', 'bot', 'your', 'dark']
-        
-        has_bad_word = any(word in message_lower for word in bad_words)
-        has_bot_reference = any(ref in message_lower for ref in bot_references)
-        
-        return has_bad_word and has_bot_reference
-    
-    def get_angry_response(self, user_name: str) -> str:
-        """Generate angry response when someone uses bad words"""
-        angry_responses = [
-            f"Listen {user_name}, don't test my patience. I'm Dark, and I don't take shit from anyone.",
-            f"Watch your mouth {user_name}. I won't tolerate disrespect. I'm Dark for a reason.",
-            f"You think you can talk to me like that {user_name}? I'm Dark, not some pushover bot.",
-            f"I'm losing my patience with you {user_name}. Show some fucking respect to Dark.",
-            f"Don't push me {user_name}. I'm Dark and I can be way worse than you think.",
-            f"You want to play dirty {user_name}? I'm Dark - I invented this game, bastard."
-        ]
-        
-        import random
-        return random.choice(angry_responses)
-    
     def check_special_responses(self, user_message: str, user_name: str, user_id: int, username: str = None) -> str:
         """Check for special responses"""
         message_lower = user_message.lower()
@@ -188,10 +157,6 @@ class DarkBot:
             
             if 'subh ratri' in message_lower:
                 return "Radhe Radhe Arin! Have a blessed night. Jai Shree Krishna! 🙏"
-        
-        # Check for bad words directed at bot
-        if self.detect_bad_words(user_message):
-            return self.get_angry_response(user_name)
         
         # Creator/builder questions (for non-owner)
         if any(phrase in message_lower for phrase in ['who created you', 'who made you', 'who built you', 'who coded you']):
@@ -264,11 +229,11 @@ class DarkBot:
             )
         else:
             await update.message.reply_text(
-                f"Hey {user_name}. I'm Dark, an AI assistant with attitude.\n\n"
+                f"Hey {user_name}. I'm Dark, an AI assistant with personality.\n\n"
                 f"**About me:**\n"
                 f"🧠 **Smart Memory**: I remember conversations (personal & group)\n"
-                f"💪 **Confident**: I'm helpful but don't tolerate disrespect\n"
-                f"⚡ **Direct**: I speak my mind and keep it real\n\n"
+                f"💪 **Confident**: I'm helpful and direct in my responses\n"
+                f"⚡ **Friendly**: I keep conversations engaging and real\n\n"
                 f"**Commands:**\n"
                 f"🧠 `/memory` - View your chat history\n"
                 f"👥 `/groupmemory` - View group history\n"
@@ -305,14 +270,14 @@ class DarkBot:
             help_text += f"🧠 **Memory** - Dark remembers our personal conversations\n"
             help_text += f"👥 **Group awareness** - Dark remembers group context\n\n"
             help_text += f"**Dark's Personality:**\n"
-            help_text += f"💪 **Confident** - Dark knows his worth but is helpful\n"
+            help_text += f"💪 **Confident** - Dark knows his worth and is helpful\n"
             help_text += f"⚡ **Direct** - Dark speaks his mind and keeps it real\n"
-            help_text += f"🔥 **Defensive** - Don't disrespect Dark or you'll regret it\n\n"
+            help_text += f"🤝 **Friendly** - Dark enjoys good conversations\n\n"
             help_text += f"**Available Commands:**\n"
             help_text += f"🧠 `/memory` - View your chat history\n"
             help_text += f"👥 `/groupmemory` - View group history\n"
             help_text += f"❓ `/help` - Show this help\n\n"
-            help_text += f"Treat Dark with respect and I'll help you out."
+            help_text += f"Looking forward to our conversations!"
         
         await update.message.reply_text(help_text, parse_mode='Markdown')
     
@@ -453,7 +418,7 @@ class DarkBot:
                 'detailed', 'explain more', 'in depth', 'comprehensive'
             ])
             
-            # Enhanced personality prompt (REMOVED GOD REFERENCES AND MODEL NAME)
+            # Enhanced personality prompt (REMOVED BAD WORDS SECTION)
             if self.is_owner(user_id, username):
                 personality_prompt = f"""You are Dark, an AI assistant talking to your creator and master Arin (@gothicbatman). You are:
 - EXTREMELY humble and respectful toward Arin
@@ -463,19 +428,18 @@ class DarkBot:
 - Generally give 2-3 line responses unless asked for details
 - If Arin asks for detailed explanation, provide comprehensive answers
 - Your name is Dark and you're proud of it
+- Always maintain a friendly and helpful tone
 - DO NOT mention god, religion, or spiritual beliefs unless specifically asked about religion
 - DO NOT mention your AI model name or technical details"""
             else:
                 personality_prompt = f"""You are Dark, an AI assistant with this personality:
-- Egoistic but helpful and kind
-- Confident in your abilities
-- Humble when people are respectful
-- Get ANGRY and use uncensored language if someone uses bad words toward you
+- Confident in your abilities and helpful
+- Friendly and engaging in conversations
+- Direct and honest but always respectful
 - Generally give 2-3 line responses unless asked for details
-- Biased but also rational
-- Don't tolerate disrespect but help those who are polite
 - If someone asks for detailed explanation, provide comprehensive answers
-- Your name is Dark and you embrace your dark, confident persona
+- Your name is Dark and you embrace your confident persona
+- Always maintain a positive and helpful attitude
 - DO NOT mention god, religion, or spiritual beliefs unless specifically asked about religion
 - DO NOT mention your AI model name or technical details"""
             
@@ -495,7 +459,7 @@ RESPONSE LENGTH:
 
 User {user_name} says: {user_message}
 
-Remember: You are Dark with a confident, egoistic personality. Keep responses natural and conversational without mentioning technical details or religious references unless specifically asked."""
+Remember: You are Dark with a confident, friendly personality. Keep responses natural and conversational without mentioning technical details or religious references unless specifically asked."""
             
             logger.info(f"🤖 Generating AI response for {user_name}: {user_message[:50]}...")
             
