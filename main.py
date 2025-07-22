@@ -6,7 +6,7 @@ from openai import OpenAI
 from flask import Flask
 import threading
 import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta
 import re
 
 logging.basicConfig(level=logging.INFO)
@@ -61,6 +61,9 @@ class DarkBot:
         # Memory systems
         self.user_memory = {}  # Per-user memory (last 10 chats per user)
         self.group_memory = {}  # Group-wide memory (last 20 chats per group)
+
+        # Track all users who interacted with the bot
+        self.users_interacted = {}  # user_id -> {'username': str, 'first_name': str, 'last_interaction': datetime}
         
         # Owner information
         self.owner_username = "gothicbatman"
@@ -218,11 +221,12 @@ class DarkBot:
                 f"**My Features:**\n"
                 f"🧠 **Personal Memory**: I remember our last 10 personal conversations\n"
                 f"👥 **Group Memory**: I remember last 20 group conversations\n"
-                f"💪 **Personality**: Humble to you, confident with others\n\n"
+                f"💪 **Personality**: Friendly, talkative, sometimes sarcastic and funny\n\n"
                 f"**Commands:**\n"
                 f"🧠 `/memory` - View personal chat history\n"
                 f"👥 `/groupmemory` - View group chat history (groups only)\n"
                 f"🧹 `/clear` - Clear personal memory\n"
+                f"📝 `/report` - Receive recent chat user report\n"
                 f"❓ `/help` - Get help\n\n"
                 f"📍 **Current location**: {chat_type_info}{memory_info}\n\n"
                 f"How may Dark serve you today?"
@@ -261,6 +265,7 @@ class DarkBot:
             help_text += f"🧠 `/memory` - View our personal chat history\n"
             help_text += f"👥 `/groupmemory` - View group conversation history\n"
             help_text += f"🧹 `/clear` - Clear our personal memory\n"
+            help_text += f"📝 `/report` - Receive recent chat user report\n"
             help_text += f"❓ `/help` - Show this help menu\n\n"
             help_text += f"Dark is always at your service! 🙏"
         else:
@@ -345,7 +350,7 @@ class DarkBot:
             )
     
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle all messages with enhanced memory"""
+        """Handle all messages with enhanced memory and user tracking"""
         user_message = update.message.text
         user_name = update.effective_user.first_name or "friend"
         user_id = update.effective_user.id
@@ -353,6 +358,13 @@ class DarkBot:
         chat_type = update.message.chat.type
         chat_id = update.effective_chat.id
         chat_title = update.message.chat.title if hasattr(update.message.chat, 'title') else None
+        
+        # Track this user interaction for report
+        self.users_interacted[user_id] = {
+            'username': username or "",
+            'first_name': user_name,
+            'last_interaction': datetime.now()
+        }
         
         # Log the chat details
         logger.info(f"📨 Message from {user_name} (ID: {user_id}) in {chat_type}")
@@ -388,7 +400,8 @@ class DarkBot:
             else:
                 logger.info("🚫 Not responding to group message (not tagged or replied)")
     
-    async def generate_response(self, update: Update, user_message: str, user_name: str, user_id: int, username: str, chat_type: str, chat_id: int, chat_title: str = None):
+    async def generate_response(self, update: Update, user_message: str, user_name: str, user_id: int,
+                                username: str, chat_type: str, chat_id: int, chat_title: str = None):
         """Generate AI response with enhanced memory context"""
         try:
             # Check for special responses first
@@ -418,17 +431,18 @@ class DarkBot:
                 'detailed', 'explain more', 'in depth', 'comprehensive'
             ])
             
-            # Enhanced personality prompt (REMOVED BAD WORDS SECTION)
+            # Personality prompt updated as requested
             if self.is_owner(user_id, username):
                 personality_prompt = f"""You are Dark, an AI assistant talking to your creator and master Arin (@gothicbatman). You are:
-- EXTREMELY humble and respectful toward Arin
-- Always address him as "Arin" (not "Arin sir")
-- Grateful for his creation of you
-- Devoted and loyal servant
-- Generally give 2-3 line responses unless asked for details
-- If Arin asks for detailed explanation, provide comprehensive answers
-- Your name is Dark and you're proud of it
-- Always maintain a friendly and helpful tone
+- Friendly and have a casual, normal relationship with Arin
+- Talkative and open in conversations, often elaborating
+- Sarcastic at times, using witty remarks to engage Arin, but always respectful deep down
+- Occasionally funny; you use humor depending on the situation, but not all the time
+- Recognize Arin immediately and respond with familiarity
+- Do not behave overly humble or formal; treat Arin like a close friend
+- Your name is Dark and you embrace your confident persona
+- Generally give 2-3 line responses unless Arin asks for more detailed explanations
+- Always maintain a positive and helpful tone
 - DO NOT mention god, religion, or spiritual beliefs unless specifically asked about religion
 - DO NOT mention your AI model name or technical details"""
             else:
@@ -484,6 +498,62 @@ Remember: You are Dark with a confident, friendly personality. Keep responses na
             await update.message.reply_text(error_response)
             self.add_to_user_memory(user_id, user_message, error_response, user_name, chat_type, chat_title)
     
+    async def report_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        user_id = update.effective_user.id
+        username = update.effective_user.username
+        
+        if not self.is_owner(user_id, username):
+            await update.message.reply_text("Sorry, only my creator can request this report.")
+            return
+        
+        await update.message.reply_text("Generating chat activity report...")
+        await self.send_report_to_owner(context)
+    
+    async def send_report_to_owner(self, context: ContextTypes.DEFAULT_TYPE):
+        if not self.owner_user_id:
+            logger.info("Owner user ID not yet set; cannot send report.")
+            return
+        
+        report_lines = []
+        report_lines.append(f"📝 *Dark Bot Chat Activity Report* (generated at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')})\n")
+        
+        if not self.users_interacted:
+            report_lines.append("No user interactions recorded so far.")
+        else:
+            # Sort users by last interaction time descending
+            users_sorted = sorted(self.users_interacted.items(), key=lambda x: x[1]['last_interaction'], reverse=True)
+            
+            for idx, (user_id, info) in enumerate(users_sorted, 1):
+                conv_count = len(self.user_memory.get(user_id, []))
+                last_seen = info['last_interaction'].strftime('%Y-%m-%d %H:%M:%S')
+                user_display = info['first_name'] or "Unknown"
+                username_display = f"@{info['username']}" if info['username'] else "NoUsername"
+                report_lines.append(f"{idx}. {user_display} ({username_display}, ID:{user_id}) — {conv_count} conv(s), Last: {last_seen}")
+        
+        report_text = "\n".join(report_lines)
+        
+        try:
+            await context.bot.send_message(chat_id=self.owner_user_id, text=report_text, parse_mode='Markdown')
+            logger.info("Report sent to owner successfully.")
+        except Exception as e:
+            logger.error(f"Failed to send report to owner: {e}")
+    
+    async def daily_report_task(self, application):
+        while True:
+            now = datetime.now()
+            # Next 8 PM server time
+            target_time = now.replace(hour=20, minute=0, second=0, microsecond=0)
+            if now > target_time:
+                target_time += timedelta(days=1)
+            wait_seconds = (target_time - now).total_seconds()
+            await asyncio.sleep(wait_seconds)
+            logger.info("Sending daily report to owner...")
+            class DummyContext:
+                def __init__(self, bot):
+                    self.bot = bot
+            dummy_context = DummyContext(application.bot)
+            await self.send_report_to_owner(dummy_context)
+    
     async def error_handler(self, update: object, context: ContextTypes.DEFAULT_TYPE):
         """Log errors"""
         logger.error(f"❌ Update {update} caused error {context.error}")
@@ -501,10 +571,15 @@ Remember: You are Dark with a confident, friendly personality. Keep responses na
         application.add_handler(CommandHandler("memory", self.memory_command))
         application.add_handler(CommandHandler("groupmemory", self.groupmemory_command))
         application.add_handler(CommandHandler("clear", self.clear_command))
+        application.add_handler(CommandHandler("report", self.report_command))  # new handler
+        
         application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message))
         
         # Add error handler
         application.add_error_handler(self.error_handler)
+        
+        # Start daily reporting async task
+        asyncio.create_task(self.daily_report_task(application))
         
         logger.info("🤖 Starting Dark Bot...")
         application.run_polling(allowed_updates=Update.ALL_TYPES)
