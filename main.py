@@ -72,7 +72,6 @@ class DarkBot:
         logger.info("✅ Dark Bot initialized successfully")
     
     def add_to_user_memory(self, user_id: int, user_message: str, bot_response: str, user_name: str, chat_type: str, chat_title: str = None):
-        """Add conversation to user's personal memory"""
         if user_id not in self.user_memory:
             self.user_memory[user_id] = []
         
@@ -87,14 +86,12 @@ class DarkBot:
         
         self.user_memory[user_id].append(conversation)
         
-        # Keep only last 10 conversations per user
         if len(self.user_memory[user_id]) > 10:
             self.user_memory[user_id] = self.user_memory[user_id][-10:]
         
         logger.info(f"Added to user memory for {user_id} ({user_name})")
     
     def add_to_group_memory(self, chat_id: int, user_name: str, user_message: str, bot_response: str, chat_title: str):
-        """Add conversation to group-wide memory (last 20 chats)"""
         if chat_id not in self.group_memory:
             self.group_memory[chat_id] = []
         
@@ -108,14 +105,12 @@ class DarkBot:
         
         self.group_memory[chat_id].append(conversation)
         
-        # Keep only last 20 conversations per group
         if len(self.group_memory[chat_id]) > 20:
             self.group_memory[chat_id] = self.group_memory[chat_id][-20:]
         
         logger.info(f"Added to group memory for {chat_id} ({chat_title})")
     
     def get_user_memory_context(self, user_id: int, user_name: str) -> str:
-        """Get user's personal memory context"""
         if user_id not in self.user_memory or not self.user_memory[user_id]:
             return f"This is my first personal conversation with {user_name}."
         
@@ -128,7 +123,6 @@ class DarkBot:
         return memory_context
     
     def get_group_memory_context(self, chat_id: int, chat_title: str) -> str:
-        """Get group-wide memory context"""
         if chat_id not in self.group_memory or not self.group_memory[chat_id]:
             return f"This is a new group conversation in {chat_title}."
         
@@ -140,47 +134,34 @@ class DarkBot:
         return memory_context
     
     def is_owner(self, user_id: int, username: str = None) -> bool:
-        """Check if user is the owner"""
         if username and username.lower() == self.owner_username.lower():
-            self.owner_user_id = user_id  # Store owner's user ID
+            self.owner_user_id = user_id
             return True
         return user_id == self.owner_user_id if self.owner_user_id else False
     
     def check_special_responses(self, user_message: str, user_name: str, user_id: int, username: str = None) -> str:
-        """Check for special responses"""
         message_lower = user_message.lower()
         
-        # Owner-specific responses (always humble and respectful)
         if self.is_owner(user_id, username):
             if any(phrase in message_lower for phrase in ['who created you', 'who made you', 'who built you']):
                 return f"You did, Arin! You're my creator and master. I'm Dark, honored to serve you. 🙏"
-            
             if any(phrase in message_lower for phrase in ['good night', 'goodnight', 'gn']):
                 return f"Good night Arin! Sleep well. I'm Dark, and I'll be here whenever you need me. 🌙"
-            
             if 'subh ratri' in message_lower:
                 return "Radhe Radhe Arin! Have a blessed night. Jai Shree Krishna! 🙏"
         
-        # Creator/builder questions (for non-owner)
         if any(phrase in message_lower for phrase in ['who created you', 'who made you', 'who built you', 'who coded you']):
             return f"Arin is my creator and master. He built me and named me Dark. I'm proud to be his creation."
-        
-        # Krishna/God related - ONLY when specifically asked about religion
         if any(phrase in message_lower for phrase in ['krishna', 'god', 'bhagwan', 'ishwar', 'ram', 'shiva', 'ganesh', 'religion', 'pray', 'worship']):
             return f"I believe in Lord Krishna and Hindu gods and goddesses. They guide us all. 🙏"
-        
-        # Good night responses
         if any(phrase in message_lower for phrase in ['good night', 'goodnight', 'gn', 'sleep well']):
             return f"Good night {user_name}. Sleep well and have sweet dreams. -Dark"
-        
-        # Subh ratri response
         if 'subh ratri' in message_lower:
             return "Radhe Radhe! Have a blessed night. Jai Shree Krishna! 🙏 -Dark"
         
         return None
     
     async def get_openai_response(self, prompt: str, model: str = "provider-6/deepseek-r1-uncensored") -> str:
-        """Get response from OpenAI A4F API with specified model"""
         try:
             logger.info(f"🔄 Making API call to {model}...")
             loop = asyncio.get_event_loop()
@@ -396,9 +377,10 @@ class DarkBot:
         application.add_handler(CommandHandler("memory", self.memory_command))
         application.add_handler(CommandHandler("groupmemory", self.groupmemory_command))
         application.add_handler(CommandHandler("clear", self.clear_command))
-        application.add_handler(CommandHandler("report", self.report_command))  # manual report command
+        application.add_handler(CommandHandler("report", self.report_command))
         
-        application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message))
+        # If you want to handle free text messages, you must implement handle_message, otherwise comment out this line:
+        # application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message))
         
         application.add_error_handler(self.error_handler)
         
