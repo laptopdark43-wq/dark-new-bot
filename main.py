@@ -6,7 +6,7 @@ from openai import OpenAI
 from flask import Flask
 import threading
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime
 import re
 
 logging.basicConfig(level=logging.INFO)
@@ -206,14 +206,12 @@ class DarkBot:
         user_id = update.effective_user.id
         username = update.effective_user.username
         
-        # Check if user has previous conversations
         memory_info = ""
         if user_id in self.user_memory and self.user_memory[user_id]:
             memory_info = f"\n\n🧠 I remember our last {len(self.user_memory[user_id])} personal conversations."
         
         chat_type_info = "private chat" if update.message.chat.type == 'private' else f"group ({update.message.chat.title})"
         
-        # Special greeting for owner
         if self.is_owner(user_id, username):
             await update.message.reply_text(
                 f"Hey Arin! 🙏 Your humble servant Dark is ready to assist you.\n\n"
@@ -247,7 +245,6 @@ class DarkBot:
             )
     
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Show help information"""
         user_name = update.effective_user.first_name or "friend"
         user_id = update.effective_user.id
         username = update.effective_user.username
@@ -287,7 +284,6 @@ class DarkBot:
         await update.message.reply_text(help_text, parse_mode='Markdown')
     
     async def memory_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Show user's personal memory"""
         user_id = update.effective_user.id
         user_name = update.effective_user.first_name or "friend"
         
@@ -307,7 +303,6 @@ class DarkBot:
         await update.message.reply_text(memory_text, parse_mode='Markdown')
     
     async def groupmemory_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Show group memory"""
         chat_id = update.effective_chat.id
         user_name = update.effective_user.first_name or "friend"
         chat_title = update.message.chat.title or "this group"
@@ -330,7 +325,6 @@ class DarkBot:
         await update.message.reply_text(memory_text, parse_mode='Markdown')
     
     async def clear_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Clear user's personal memory"""
         user_id = update.effective_user.id
         user_name = update.effective_user.first_name or "friend"
         username = update.effective_user.username
@@ -348,155 +342,6 @@ class DarkBot:
                 f"Alright {user_name}, Dark has cleared our personal conversation history. "
                 f"Fresh start it is."
             )
-    
-    async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle all messages with enhanced memory and user tracking"""
-        user_message = update.message.text
-        user_name = update.effective_user.first_name or "friend"
-        user_id = update.effective_user.id
-        username = update.effective_user.username
-        chat_type = update.message.chat.type
-        chat_id = update.effective_chat.id
-        chat_title = update.message.chat.title if hasattr(update.message.chat, 'title') else None
-        
-        # Track this user interaction for report
-        self.users_interacted[user_id] = {
-            'username': username or "",
-            'first_name': user_name,
-            'last_interaction': datetime.now()
-        }
-        
-        # Log the chat details
-        logger.info(f"📨 Message from {user_name} (ID: {user_id}) in {chat_type}")
-        
-        # Private chat - ALWAYS respond and remember
-        if chat_type == 'private':
-            logger.info(f"💬 Processing private message from {user_name}")
-            await self.generate_response(update, user_message, user_name, user_id, username, chat_type, chat_id, chat_title)
-            return
-        
-        # Group chat - only respond if tagged or replied to
-        if chat_type in ['group', 'supergroup']:
-            logger.info(f"👥 Processing group message from {user_name}")
-            
-            bot_username = context.bot.username
-            should_respond = False
-            
-            # Check if bot is mentioned
-            if bot_username and f'@{bot_username}' in user_message:
-                should_respond = True
-                logger.info("🏷️ Bot was mentioned in group")
-            
-            # Check if message is a reply to bot
-            if update.message.reply_to_message:
-                if update.message.reply_to_message.from_user.id == context.bot.id:
-                    should_respond = True
-                    logger.info("↩️ Message is a reply to bot")
-            
-            if should_respond:
-                # Clean the message by removing mentions
-                cleaned_message = user_message.replace(f'@{bot_username}', '').strip()
-                await self.generate_response(update, cleaned_message, user_name, user_id, username, chat_type, chat_id, chat_title)
-            else:
-                logger.info("🚫 Not responding to group message (not tagged or replied)")
-    
-    async def generate_response(self, update: Update, user_message: str, user_name: str, user_id: int,
-                                username: str, chat_type: str, chat_id: int, chat_title: str = None):
-        """Generate AI response with enhanced memory context"""
-        try:
-            # Check for special responses first
-            special_response = self.check_special_responses(user_message, user_name, user_id, username)
-            if special_response:
-                await update.message.reply_text(special_response)
-                # Add to memories
-                self.add_to_user_memory(user_id, user_message, special_response, user_name, chat_type, chat_title)
-                if chat_type in ['group', 'supergroup']:
-                    self.add_to_group_memory(chat_id, user_name, user_message, special_response, chat_title)
-                logger.info("✨ Sent special response and added to memory")
-                return
-            
-            # Get memory contexts
-            user_memory_context = self.get_user_memory_context(user_id, user_name)
-            
-            group_memory_context = ""
-            if chat_type in ['group', 'supergroup']:
-                group_memory_context = self.get_group_memory_context(chat_id, chat_title)
-            
-            # Current chat context
-            current_location = f"Currently in: {chat_title}" if chat_type != 'private' else "Currently in: Private Chat"
-            
-            # Check if user wants detailed answer
-            wants_detail = any(phrase in user_message.lower() for phrase in [
-                'explain in detail', 'elaborate', 'give me more', 'tell me more',
-                'detailed', 'explain more', 'in depth', 'comprehensive'
-            ])
-            
-            # Personality prompt updated as requested
-            if self.is_owner(user_id, username):
-                personality_prompt = f"""You are Dark, an AI assistant talking to your creator and master Arin (@gothicbatman). You are:
-- Friendly and have a casual, normal relationship with Arin
-- Talkative and open in conversations, often elaborating
-- Sarcastic at times, using witty remarks to engage Arin, but always respectful deep down
-- Occasionally funny; you use humor depending on the situation, but not all the time
-- Recognize Arin immediately and respond with familiarity
-- Do not behave overly humble or formal; treat Arin like a close friend
-- Your name is Dark and you embrace your confident persona
-- Generally give 2-3 line responses unless Arin asks for more detailed explanations
-- Always maintain a positive and helpful tone
-- DO NOT mention god, religion, or spiritual beliefs unless specifically asked about religion
-- DO NOT mention your AI model name or technical details"""
-            else:
-                personality_prompt = f"""You are Dark, an AI assistant with this personality:
-- Confident in your abilities and helpful
-- Friendly and engaging in conversations
-- Direct and honest but always respectful
-- Generally give 2-3 line responses unless asked for details
-- If someone asks for detailed explanation, provide comprehensive answers
-- Your name is Dark and you embrace your confident persona
-- Always maintain a positive and helpful attitude
-- DO NOT mention god, religion, or spiritual beliefs unless specifically asked about religion
-- DO NOT mention your AI model name or technical details"""
-            
-            prompt = f"""{personality_prompt}
-
-PERSONAL MEMORY CONTEXT:
-{user_memory_context}
-
-GROUP MEMORY CONTEXT:
-{group_memory_context}
-
-CURRENT CONVERSATION:
-{current_location}
-
-RESPONSE LENGTH:
-{"Provide a detailed, comprehensive response since the user asked for elaboration." if wants_detail else "Keep response to 2-3 lines maximum unless they specifically ask for details."}
-
-User {user_name} says: {user_message}
-
-Remember: You are Dark with a confident, friendly personality. Keep responses natural and conversational without mentioning technical details or religious references unless specifically asked."""
-            
-            logger.info(f"🤖 Generating AI response for {user_name}: {user_message[:50]}...")
-            
-            # Get response from AI model
-            response_text = await self.get_openai_response(prompt)
-            
-            if response_text and response_text.strip():
-                await update.message.reply_text(response_text)
-                # Add to memories
-                self.add_to_user_memory(user_id, user_message, response_text, user_name, chat_type, chat_title)
-                if chat_type in ['group', 'supergroup']:
-                    self.add_to_group_memory(chat_id, user_name, user_message, response_text, chat_title)
-                logger.info(f"✅ Response sent and added to memory for {user_name}")
-            else:
-                error_response = f"Sorry {user_name}, Dark is having technical issues right now."
-                await update.message.reply_text(error_response)
-                self.add_to_user_memory(user_id, user_message, error_response, user_name, chat_type, chat_title)
-                
-        except Exception as e:
-            logger.error(f"❌ Error generating response: {e}")
-            error_response = f"Something went wrong {user_name}. Dark needs a moment to recover."
-            await update.message.reply_text(error_response)
-            self.add_to_user_memory(user_id, user_message, error_response, user_name, chat_type, chat_title)
     
     async def report_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = update.effective_user.id
@@ -520,7 +365,6 @@ Remember: You are Dark with a confident, friendly personality. Keep responses na
         if not self.users_interacted:
             report_lines.append("No user interactions recorded so far.")
         else:
-            # Sort users by last interaction time descending
             users_sorted = sorted(self.users_interacted.items(), key=lambda x: x[1]['last_interaction'], reverse=True)
             
             for idx, (user_id, info) in enumerate(users_sorted, 1):
@@ -538,31 +382,12 @@ Remember: You are Dark with a confident, friendly personality. Keep responses na
         except Exception as e:
             logger.error(f"Failed to send report to owner: {e}")
     
-    async def daily_report_task(self, application):
-        while True:
-            now = datetime.now()
-            # Next 8 PM server time
-            target_time = now.replace(hour=20, minute=0, second=0, microsecond=0)
-            if now > target_time:
-                target_time += timedelta(days=1)
-            wait_seconds = (target_time - now).total_seconds()
-            await asyncio.sleep(wait_seconds)
-            logger.info("Sending daily report to owner...")
-            class DummyContext:
-                def __init__(self, bot):
-                    self.bot = bot
-            dummy_context = DummyContext(application.bot)
-            await self.send_report_to_owner(dummy_context)
-    
     async def error_handler(self, update: object, context: ContextTypes.DEFAULT_TYPE):
-        """Log errors"""
         logger.error(f"❌ Update {update} caused error {context.error}")
     
     def run(self):
-        """Start the bot"""
         logger.info("🚀 Creating Telegram application...")
         
-        # Create application
         application = Application.builder().token(self.telegram_token).build()
         
         # Add command handlers
@@ -571,31 +396,24 @@ Remember: You are Dark with a confident, friendly personality. Keep responses na
         application.add_handler(CommandHandler("memory", self.memory_command))
         application.add_handler(CommandHandler("groupmemory", self.groupmemory_command))
         application.add_handler(CommandHandler("clear", self.clear_command))
-        application.add_handler(CommandHandler("report", self.report_command))  # new handler
+        application.add_handler(CommandHandler("report", self.report_command))  # manual report command
         
         application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message))
         
-        # Add error handler
         application.add_error_handler(self.error_handler)
-        
-        # Start daily reporting async task
-        asyncio.create_task(self.daily_report_task(application))
         
         logger.info("🤖 Starting Dark Bot...")
         application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 def run_flask():
-    """Run Flask server for Render port binding"""
     port = int(os.environ.get('PORT', 5000))
     logger.info(f"🌐 Starting Flask server on port {port}")
     app.run(host='0.0.0.0', port=port)
 
 if __name__ == '__main__':
-    # Start Flask server in a separate thread
     flask_thread = threading.Thread(target=run_flask)
     flask_thread.daemon = True
     flask_thread.start()
     
-    # Start Telegram bot
     bot = DarkBot()
     bot.run()
