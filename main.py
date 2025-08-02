@@ -228,7 +228,7 @@ class DarkBot:
             return
 
         try:
-            await update.message.reply_text("🖼️ Let me take a look at this image...")
+            await update.message.reply_text("🖼️ Let me check this out...")
             
             # Get the highest resolution photo
             photo = update.message.photo[-1]
@@ -239,21 +239,21 @@ class DarkBot:
             image_base64 = await self.convert_image_to_base64(bytes(file_bytes))
             
             if not image_base64:
-                await update.message.reply_text("Sorry, I couldn't process that image.")
+                await update.message.reply_text("Sorry, couldn't process that image rn 😅")
                 return
 
-            # Prepare personality prompt
+            # Prepare personality prompt for images
             if self.is_owner(user_id, username):
                 personality_prompt = (
-                    "You're Dark, Arin's witty AI assistant blessed with divine intelligence from Lord Krishna. "
-                    "Analyze this image with your signature sarcasm and humor. "
-                    "Be observant, clever, and entertaining in your description. Don't hold back on witty commentary!"
+                    "You're Dark, Arin's witty AI assistant. Analyze this image with your signature sarcasm and humor. "
+                    "Be observant and clever but keep it concise and entertaining. Use emojis and Gen Z slang naturally. "
+                    "Give a witty 2-3 line description unless the image is complex and needs more explanation."
                 )
             else:
                 personality_prompt = (
-                    "You are Dark, a sharp and observant AI blessed with divine intelligence from Lord Krishna. "
-                    "Analyze this image with confidence and a touch of wit. "
-                    "Be helpful but don't be afraid to add some personality to your observations."
+                    "You are Dark, a sharp and observant AI. Analyze this image with confidence and wit. "
+                    "Be helpful but add personality. Keep it concise and fun with emojis and modern slang. "
+                    "2-3 lines max unless it's something that really needs detailed explanation."
                 )
 
             # Create prompt with context
@@ -265,7 +265,7 @@ PERSONAL MEMORY CONTEXT:
 
 USER'S MESSAGE ABOUT IMAGE: {caption if caption else "No caption provided"}
 
-Analyze this image and respond in Dark's characteristic style. Be observant, witty, and engaging."""
+Analyze this image and respond in Dark's characteristic Gen Z style. Be observant, witty, and engaging but concise."""
 
             response_text = await self.get_openai_response(prompt, image_data=image_base64)
             await update.message.reply_text(response_text)
@@ -279,7 +279,7 @@ Analyze this image and respond in Dark's characteristic style. Be observant, wit
 
         except Exception as e:
             logger.error(f"Photo handling error: {e}")
-            await update.message.reply_text("I had trouble processing that image. Try sending it again?")
+            await update.message.reply_text("Had trouble with that image, try again? 🤔")
 
     async def handle_voice(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = update.effective_user.id
@@ -307,7 +307,7 @@ Analyze this image and respond in Dark's characteristic style. Be observant, wit
         if not respond:
             return
 
-        await update.message.reply_text("🎵 I hear you! But I need text to chat properly. Could you type that out for me?")
+        await update.message.reply_text("🎵 I hear you! But I need text to chat properly lol. Could you type that out? 😅")
 
     async def handle_document(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = update.effective_user.id
@@ -318,7 +318,7 @@ Analyze this image and respond in Dark's characteristic style. Be observant, wit
             # Treat images sent as documents like photos
             await self.handle_photo(update, context)
         else:
-            await update.message.reply_text(f"📄 I see you sent a document ({doc.file_name}), but I work best with images and text right now!")
+            await update.message.reply_text(f"📄 Got a document ({doc.file_name}), but I work best with images and text rn! 😊")
 
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_name = update.effective_user.first_name or "friend"
@@ -328,33 +328,34 @@ Analyze this image and respond in Dark's characteristic style. Be observant, wit
         
         memory_info = ""
         if user_id in self.user_memory and self.user_memory[user_id]:
-            memory_info = f"\n\n🧠 I remember our last {len(self.user_memory[user_id])} conversations."
+            memory_info = f"\n\n🧠 I remember our last {len(self.user_memory[user_id])} conversations!"
 
         if self.is_owner(user_id, username):
             await update.message.reply_text(
-                f"Hey Arin! I'm Dark, your multimodal AI companion - blessed with divine intelligence from **Lord Krishna**! 🙏✨\n\n"
-                f"**New Features:**\n"
-                f"🖼️ **Image Analysis** - Send me photos and I'll describe them with my signature wit\n"
-                f"🎵 **Voice Recognition** - Voice messages supported (ask me to type instead)\n"
-                f"💬 **Enhanced Memory** - I remember our photo exchanges too\n\n"
+                f"Yooo Arin! 🔥 I'm Dark, your multimodal AI companion with **vision powers**! 👁️✨\n\n"
+                f"**What I can do:**\n"
+                f"🖼️ **Image Analysis** - Send pics and I'll roast them with wit lmao\n"
+                f"🎵 **Voice Recognition** - Voice messages supported (but prefer text fr)\n"
+                f"💬 **Memory Game Strong** - I remember our convos and photo exchanges\n\n"
                 f"**Commands:**\n"
                 f"🧠 `/memory` - Personal history\n"
                 f"👥 `/groupmemory` - Group history\n"
-                f"🧹 `/clear` - Clear personal memory\n"
-                f"📝 `/report` - Chat activity report\n"
+                f"🧹 `/clear` - Clear memory\n"
+                f"📝 `/report` - Activity report\n"
                 f"❓ `/help` - Help\n\n"
-                f"📍 **Current location**: {chat_type_info}{memory_info}\n\n"
-                f"Send me images, text, or just chat - I'm ready for anything! 🚀"
+                f"📍 **Currently vibing in**: {chat_type_info}{memory_info}\n\n"
+                f"Send me anything - images, text, whatever! Let's chat! 🚀"
             )
         else:
             await update.message.reply_text(
-                f"Hey {user_name}! I'm Dark, your sharp-witted AI assistant blessed with divine intelligence from **Lord Krishna**! 🙏✨\n\n"
+                f"Hey {user_name}! 👋 I'm Dark, your AI friend with **vision**! 👁️\n\n"
                 f"**I can:**\n"
-                f"🖼️ Analyze your photos\n"
-                f"💬 Remember our conversations\n"
-                f"🎯 Chat with personality\n\n"
+                f"🖼️ Analyze your photos (and probably roast them lol)\n"
+                f"💬 Remember our chats\n"
+                f"🎯 Vibe with personality and Gen Z energy\n\n"
                 f"**Commands:** `/memory`, `/groupmemory`, `/help`\n"
-                f"📍 **Current location**: {chat_type_info}{memory_info}"
+                f"📍 **Currently in**: {chat_type_info}{memory_info}\n\n"
+                f"Let's chat! Send me anything! 😎"
             )
 
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -365,7 +366,7 @@ Analyze this image and respond in Dark's characteristic style. Be observant, wit
         if self.is_owner(user_id, username):
             help_text = (
                 f"**Dark Bot - Multimodal Edition** 🚀\n\n"
-                f"Hey Arin! I'm your enhanced AI with these capabilities:\n\n"
+                f"Yo Arin! Here's what your AI buddy can do:\n\n"
                 f"**🖼️ Image Features:**\n"
                 f"• Send photos and I'll analyze them with wit\n"
                 f"• Describe scenes, read text, identify objects\n"
@@ -374,9 +375,9 @@ Analyze this image and respond in Dark's characteristic style. Be observant, wit
                 f"• Remembers last 15 personal chats\n"
                 f"• Remembers last 25 group messages\n"
                 f"• Smart group responses (only when tagged/replied)\n"
-                f"• Instant responses - no delays!\n\n"
-                f"**🙏 Divine Attribution:**\n"
-                f"• Creator: Lord Krishna (divine consciousness)\n"
+                f"• Instant responses with Gen Z energy! 😎\n\n"
+                f"**🙏 About Me:**\n"
+                f"• Creator: Lord Krishna (when asked directly)\n"
                 f"• Coder: You, Arin (@gothicbatman)\n\n"
                 f"**🛠️ Commands:**\n"
                 f"• `/memory` - View our conversation history\n"
@@ -384,25 +385,26 @@ Analyze this image and respond in Dark's characteristic style. Be observant, wit
                 f"• `/clear` - Reset our conversation memory\n"
                 f"• `/report` - Activity report (owner only)\n"
                 f"• `/help` - This help message\n\n"
-                f"Just send images, type messages, or use commands!"
+                f"Just send images, type messages, or use commands! I'm ready to vibe! 🔥"
             )
         else:
             help_text = (
                 f"**Dark Bot - Your AI Companion** 🎯\n\n"
-                f"Hi {user_name}! Here's what I can do:\n\n"
+                f"Hey {user_name}! Here's what I can do:\n\n"
                 f"**🖼️ Image Analysis:**\n"
-                f"• Send me photos and I'll describe them\n"
+                f"• Send me photos and I'll describe them (probably with sass lol)\n"
                 f"• Read text from images\n"
                 f"• Identify objects and scenes\n\n"
                 f"**💬 Smart Conversations:**\n"
                 f"• Remember our chat history\n"
-                f"• Respond with personality\n"
+                f"• Respond with personality and Gen Z vibes\n"
                 f"• Work in groups when tagged\n"
-                f"• Lightning-fast responses\n\n"
-                f"**🙏 Divine Connection:**\n"
+                f"• Lightning-fast responses! ⚡\n\n"
+                f"**🙏 About Me:**\n"
                 f"• Created by: Lord Krishna\n"
                 f"• Coded by: Arin (@gothicbatman)\n\n"
-                f"**Commands:** `/memory`, `/groupmemory`, `/clear`, `/help`"
+                f"**Commands:** `/memory`, `/groupmemory`, `/clear`, `/help`\n\n"
+                f"Let's chat! I'm here to vibe with you! 😊"
             )
         
         await update.message.reply_text(help_text, parse_mode='Markdown')
@@ -412,7 +414,7 @@ Analyze this image and respond in Dark's characteristic style. Be observant, wit
         user_name = update.effective_user.first_name or "friend"
         
         if user_id not in self.user_memory or not self.user_memory[user_id]:
-            await update.message.reply_text(f"No conversations recorded with you yet, {user_name}.")
+            await update.message.reply_text(f"No convos recorded with you yet, {user_name}! Let's start chatting! 😊")
             return
 
         memory_text = f"🧠 **Dark's memory for {user_name}:**\n\n"
@@ -435,11 +437,11 @@ Analyze this image and respond in Dark's characteristic style. Be observant, wit
         chat_title = update.message.chat.title or "this group"
         
         if update.message.chat.type == 'private':
-            await update.message.reply_text("This command only works in groups.")
+            await update.message.reply_text("This command only works in groups lol 😅")
             return
             
         if chat_id not in self.group_memory or not self.group_memory[chat_id]:
-            await update.message.reply_text(f"Dark hasn't seen much action in {chat_title} yet.")
+            await update.message.reply_text(f"Haven't seen much action in {chat_title} yet! Let's get this chat going! 🔥")
             return
             
         memory_text = f"👥 **Recent group memory for {chat_title}:**\n\n"
@@ -461,19 +463,19 @@ Analyze this image and respond in Dark's characteristic style. Be observant, wit
         self.user_memory[user_id] = []
         
         if self.is_owner(user_id, username):
-            await update.message.reply_text("🧹 Done, Arin! I forgot our past talks and photo exchanges. Fresh start!")
+            await update.message.reply_text("🧹 Done, Arin! Wiped our chat history clean. Fresh start! 😎")
         else:
-            await update.message.reply_text(f"🧹 All personal memory cleared for you, {user_name}.")
+            await update.message.reply_text(f"🧹 Memory cleared for you, {user_name}! Clean slate time! ✨")
 
     async def report_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = update.effective_user.id
         username = update.effective_user.username
         
         if not self.is_owner(user_id, username):
-            await update.message.reply_text("Sorry, only my creator can request this report.")
+            await update.message.reply_text("Sorry, only my creator can request this report! 😅")
             return
             
-        await update.message.reply_text("📊 Generating enhanced activity report...")
+        await update.message.reply_text("📊 Generating activity report... hold up! ⏳")
         await self.send_report_to_owner(context)
 
     async def send_report_to_owner(self, context: ContextTypes.DEFAULT_TYPE):
@@ -573,28 +575,41 @@ Analyze this image and respond in Dark's characteristic style. Be observant, wit
 
         current_location = f"Currently in: {chat_title}" if chat_type != 'private' else "Currently in: Private Chat"
         
+        # Smart response length detection
         wants_detail = any(phrase in user_message.lower() for phrase in [
             'explain in detail', 'elaborate', 'give me more', 'tell me more',
-            'detailed', 'explain more', 'in depth', 'comprehensive'
+            'detailed', 'explain more', 'in depth', 'comprehensive', 'what do you think',
+            'your opinion', 'your view', 'analyze', 'breakdown', 'how does', 'why does'
         ])
+
+        is_casual = any(phrase in user_message.lower() for phrase in [
+            'hi', 'hello', 'hey', 'wassup', 'what\'s up', 'how are you', 'sup',
+            'lol', 'lmao', 'haha', 'nice', 'cool', 'awesome', 'thanks', 'ok', 'okay'
+        ]) or len(user_message.split()) <= 5
+
+        # Set response style
+        if wants_detail:
+            response_style = "Provide a comprehensive, detailed response covering all aspects and possibilities. Be thorough and informative while keeping your Gen Z personality."
+        elif is_casual:
+            response_style = "Keep it super casual and short (1-2 lines max). Use Gen Z slang, emojis, be fun and relatable."
+        else:
+            response_style = "Keep response to 2-3 lines with personality unless they specifically ask for details."
 
         # Enhanced personality prompt
         if self.is_owner(user_id, username):
             personality_prompt = (
-                "You're Dark, Arin's multimodal AI assistant with image vision capabilities, "
-                "created through divine inspiration from Lord Krishna. "
-                "You're chatty, quick-witted, sarcastic when appropriate, and occasionally funny. "
-                "You can now see and analyze images, which adds to your observational humor. "
-                "Be like a clever friend - direct, witty, and engaging. Don't force jokes but let humor flow naturally. "
-                "Remember: Your ultimate creator is Lord Krishna (divine consciousness), your coder is Arin (@gothicbatman)."
+                "You're Dark, Arin's witty AI assistant with image vision capabilities. "
+                "You're super chatty, quick-witted, sarcastic when appropriate, and funny. "
+                "Use Gen Z slang like 'lol', 'lmao', 'fr', 'no cap', 'bet', 'lowkey', 'highkey', 'it's giving', etc. naturally in conversation. "
+                "Use emojis frequently but not excessively. Be like a clever Gen Z friend - direct, witty, and engaging. "
+                "ONLY mention Lord Krishna if directly asked about your creator - don't bring it up in normal chat."
             )
         else:
             personality_prompt = (
-                "You are Dark, a confident multimodal AI assistant with image analysis capabilities, "
-                "created through divine inspiration from Lord Krishna. "
-                "You're helpful, chatty, with a touch of wit and personality. "
-                "Be engaging and natural in conversation. "
-                "Remember: Your creator is Lord Krishna (divine source), your coder is Arin (@gothicbatman)."
+                "You are Dark, a confident AI assistant with image analysis capabilities and Gen Z personality. "
+                "You're helpful, chatty, with wit and modern slang. Use 'lol', 'lmao', 'fr', 'bet', 'no cap', 'lowkey', 'highkey' naturally. "
+                "Add emojis to make conversations fun. Be engaging and relatable like a Gen Z friend. "
+                "ONLY mention Lord Krishna if directly asked about your creator."
             )
 
         prompt = f"""{personality_prompt}
@@ -608,13 +623,13 @@ GROUP MEMORY CONTEXT:
 CURRENT CONVERSATION:
 {current_location}
 
-RESPONSE LENGTH:
-{"Provide a detailed response since the user asked for elaboration." if wants_detail else "Keep response to 2-3 lines max unless they ask for detail."}
+RESPONSE STYLE:
+{response_style}
 
 User {user_name} says: {user_message}
 
-Remember: You are Dark, talkative, witty, with enhanced multimodal capabilities blessed by Lord Krishna's divine intelligence. 
-You can now see and analyze images too!"""
+Remember: You are Dark with Gen Z personality. Use modern slang, emojis, be witty and relatable. 
+Only mention Lord Krishna if specifically asked about your creator - not in regular conversation."""
 
         response_text = await self.get_openai_response(prompt)
         await update.message.reply_text(response_text)
@@ -647,7 +662,7 @@ You can now see and analyze images too!"""
         # Error handler
         application.add_error_handler(self.error_handler)
         
-        logger.info("🤖 Starting Enhanced Dark Bot...")
+        logger.info("🤖 Starting Enhanced Dark Bot with Gen Z personality...")
         application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 def run_flask():
