@@ -1,9 +1,12 @@
 services:
   - type: web
-    name: dark-telegram-bot
+    name: dark-bot
     env: python
-    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    buildCommand: |
+      python -m pip install --upgrade pip==23.3.1
+      pip install -r requirements.txt
     startCommand: python main.py
+    runtime: python-3.11.9
     envVars:
       - key: TELEGRAM_BOT_TOKEN
         sync: false
