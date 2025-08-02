@@ -90,7 +90,7 @@ class DarkBot:
             return True
         return user_id == self.owner_user_id if self.owner_user_id else False
 
-    async def get_openai_response(self, prompt, model="provider-6/deepseek-r1-uncensored"):
+    async def get_openai_response(self, prompt, model="provider-6/gpt-4o"):
         try:
             logger.info(f"🔄 Making API call to {model}...")
             loop = asyncio.get_event_loop()
