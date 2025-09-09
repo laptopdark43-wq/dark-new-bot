@@ -131,7 +131,7 @@ class DarkBot:
         
         return None
 
-    async def get_openai_response(self, prompt, model="provider-6/gpt-4o", image_data=None):
+    async def get_openai_response(self, prompt, model="provider-3/gpt-4.1-mini", image_data=None):
         """Enhanced to handle multimodal inputs"""
         try:
             logger.info(f"🔄 Making API call to {model}...")
@@ -158,7 +158,7 @@ class DarkBot:
                 completion = self.client.chat.completions.create(
                     model=model,
                     messages=messages,
-                    timeout=30
+                    timeout=10
                 )
                 return completion.choices[0].message.content
             
