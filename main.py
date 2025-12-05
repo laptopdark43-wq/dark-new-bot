@@ -223,7 +223,7 @@ class DarkBot:
     async def get_openai_response(
         self,
         prompt: str,
-        model: str = "provider-2/dialogpt-large",
+        model: str = "provider-2/gpt-4.1-nano",
         image_data: str | None = None,
     ) -> str:
         try:
